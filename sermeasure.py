@@ -6,6 +6,7 @@ class SerMeasure(metaclass=ABCMeta):
     def __init__(self, name: str, port: str):
         self.name = name
         self.port = port
+        self.n_meas = 1
         pass
     
     @abstractmethod
@@ -22,8 +23,10 @@ class SerMeasure(metaclass=ABCMeta):
     
     @abstractmethod
     def GetMeasure(self, i: int):
+        if i >= self.n_meas: return 0
         pass
 
     @abstractmethod    
     def GetUnit(self, i: int):
+        if i >= self.n_meas: return ''
         pass

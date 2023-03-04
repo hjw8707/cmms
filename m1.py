@@ -5,6 +5,7 @@ class M1(SerMeasure):
         self.name = name
         self.port = port
         self.m1 = 1
+        self.n_meas = 1
         self.connected = self.is_open()
         
     def open(self):
@@ -29,6 +30,7 @@ class M2(SerMeasure):
         self.name = name
         self.port = port
         self.m2 = 2    
+        self.n_meas = 2
         self.connected = self.is_open()
          
     def open(self):

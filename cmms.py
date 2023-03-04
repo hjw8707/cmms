@@ -119,8 +119,33 @@ class QCBIndicator(QCheckBox):
                            "QCheckBox::indicator:disabled:unchecked""{"
                            "width :10px;" "height :10px;"
                            "background-color : red;" "}"
-                           "QCheckBox" "{"
-                           "color: black;" "}")
+                           "QCheckBox" "{" "color: black;" "}")
+
+class QMeasureValue(QWidget):
+    def __init__(self, *args):
+        super().__init__(*args)
+        layout = QHBoxLayout()
+        self.lcdDigit = QLCDNumber()
+        self.lcdOrder = QLCDNumber()
+        self.unit = QLabel()
+        layout.addWidget(self.lcdDigit)
+        layout.addWidget(self.lcdOrder)
+        layout.addWidget(self.unit)
+        self.setLayout(layout)
+        #self.setLineWidth(0)
+        #self.lcdDigit.setSmallDecimalPoint(True)
+
+    def setNoValue(self):
+        self.lcdDigit.display('-----')
+        self.lcdOrder.display('-----')
+
+    def setValue(self, value: float):
+        strVal = '%.3E' % value
+        self.lcdDigit.display(strVal[:-4])
+        self.lcdOrder.display(strVal[-4:])
+    
+    def setUnit(self, value: str):
+        self.unit.setText(value)
 
 class CMMS_Measure(QWidget):
     def __init__(self, dev: SerMeasure, parent: CMMS_Port, *args, **kwargs):
@@ -132,8 +157,10 @@ class CMMS_Measure(QWidget):
     def initUI(self):
         lb_name = QLabel(self.dev.name)
         lb_dev  = QLabel(self.dev.__class__.__name__)
-        self.lcd_meas = QLCDNumber(self)
-        lb_unit = QLabel(self.dev.GetUnit(0))
+        self.lcd_meas: list[QMeasureValue] = []
+        for i in range(self.dev.n_meas):
+            self.lcd_meas.append(QMeasureValue(self))
+            self.lcd_meas[-1].setUnit(self.dev.GetUnit(i))
         self.cb_indic = QCBIndicator('status')
         pb_close = QPushButton('Close')
         pb_close.clicked.connect(lambda: self.parent.close_dev(self))
@@ -141,8 +168,7 @@ class CMMS_Measure(QWidget):
         layout = QHBoxLayout()
         layout.addWidget(lb_name)
         layout.addWidget(lb_dev)
-        layout.addWidget(self.lcd_meas)
-        layout.addWidget(lb_unit)
+        [layout.addWidget(i) for i in self.lcd_meas]
         layout.addWidget(self.cb_indic)
         layout.addWidget(pb_close)
         self.setLayout(layout)
@@ -154,7 +180,10 @@ class CMMS_Measure(QWidget):
             self.dev.open() 
         self.cb_indic.setChecked(self.dev.is_open())
         if self.cb_indic.isChecked():
-            self.lcd_meas.display(self.dev.GetMeasure(0))
+            for i, lcd in enumerate(self.lcd_meas): 
+                lcd.setValue(self.dev.GetMeasure(i))
+        else:
+            for i in self.lcd_meas: i.setNoValue()
         
         
 class CMMS_GUI(QMainWindow):
