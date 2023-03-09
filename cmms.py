@@ -80,7 +80,6 @@ class CMMS_Port(QWidget):
     def dev_update(self):
         for name, obj in inspect.getmembers(sys.modules[__name__]):          
             if inspect.isclass(obj) and obj.__base__.__name__ == 'SerMeasure':
-                print(obj.__name__)
                 self.devcl_list.append(name)        
         self.cb_devlist.clear()
         self.cb_devlist.insertItems(0, self.devcl_list)
