@@ -6,19 +6,19 @@ list_inst_pack = ["%s" % i.key for i in inst_pack]
 if   'pyqt6' in list_inst_pack: 
     pyqt = 'PyQt6'
     from PyQt6 import QtGui
-    from PyQt6.QtCore import Qt, QTimer
+    from PyQt6.QtCore import Qt, QTimer, QDateTime
     from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, \
                                 QVBoxLayout, QHBoxLayout, QLineEdit, QWidget, QGridLayout, \
                                 QGroupBox, QComboBox, QMessageBox, QTabWidget, QCheckBox, \
-                                QLCDNumber
+                                QLCDNumber, QStatusBar
 elif 'pyqt5' in list_inst_pack: 
     pyqt = 'PyQt5'
     from PyQt5 import QtGui
-    from PyQt5.QtCore import Qt, QTimer
+    from PyQt5.QtCore import Qt, QTimer, QDateTime
     from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, \
                                 QVBoxLayout, QHBoxLayout, QLineEdit, QWidget, QGridLayout, \
                                 QGroupBox, QComboBox, QMessageBox, QTabWidget, QCheckBox, \
-                                QLCDNumber
+                                QLCDNumber, QStatusBar
 else:
     print("No PyQt module found.")
     exit()
@@ -29,9 +29,13 @@ import sys, inspect
 import datetime as dt
 from serman import SerMan
 from sermeasure import SerMeasure
+
 from m1 import M1, M2
 from tpg36x import TPG36X
 from ls335 import LS335
+from tic100 import TIC100
+from bcg450 import BCG450
+
 from typing import Dict, List
 
 
@@ -66,8 +70,10 @@ class CMMS_Port(QWidget):
         lo_portlist.addWidget(self.cb_devlist, 1, 1)
         lo_portlist.addWidget(self.le_devname, 1, 2)
         lo_portlist.addWidget(pb_adddev, 1, 3)
-        
-        self.lo_devices = QGridLayout()
+        #print(lo_portlist.minimumSize())
+        #print(lo_portlist.sizeHint())
+
+        self.lo_devices = QVBoxLayout()
         
         lo_total = QVBoxLayout()
         lo_total.addLayout(lo_portlist)
@@ -104,6 +110,8 @@ class CMMS_Port(QWidget):
         self.lo_devices.removeWidget(meas)
         self.dev_list.remove(meas)
         del meas
+        print(self.parentWidget().minimumSizeHint())
+        self.parentWidget().adjustSize()
         
     def timeout(self):
         for x in [e.timeout for e in self.dev_list]: x()
@@ -120,12 +128,17 @@ class QCBIndicator(QCheckBox):
                            "background-color : red;" "}"
                            "QCheckBox" "{" "color: black;" "}")
 
+class QMeasureNumber(QLCDNumber):
+    def __init__(self, *args) -> None:
+        super().__init__(*args)
+        self.setMinimumHeight(30)
+        
 class QMeasureValue(QWidget):
     def __init__(self, *args):
         super().__init__(*args)
         layout = QHBoxLayout()
-        self.lcdDigit = QLCDNumber()
-        self.lcdOrder = QLCDNumber()
+        self.lcdDigit = QMeasureNumber()
+        self.lcdOrder = QMeasureNumber()
         self.unit = QLabel()
         layout.addWidget(self.lcdDigit)
         layout.addWidget(self.lcdOrder)
@@ -155,13 +168,17 @@ class CMMS_Measure(QWidget):
             
     def initUI(self):
         lb_name = QLabel(self.dev.name)
+        lb_name.setFixedWidth(50)
         lb_dev  = QLabel(self.dev.__class__.__name__)
+        lb_dev.setFixedWidth(50)
         self.lcd_meas: list[QMeasureValue] = []
         for i in range(self.dev.n_meas):
             self.lcd_meas.append(QMeasureValue(self))
             self.lcd_meas[-1].setUnit(self.dev.GetUnit(i))
         self.cb_indic = QCBIndicator('status')
+        self.cb_indic.setFixedWidth(70)
         pb_close = QPushButton('Close')
+        pb_close.setFixedWidth(70)
         pb_close.clicked.connect(lambda: self.parent.close_dev(self))
 
         layout = QHBoxLayout()
@@ -193,6 +210,25 @@ class CMMS_GUI(QMainWindow):
     def initUI(self):
         self.setWindowTitle("CMMS: CENS Measurement Management System")
         self.setCentralWidget(CMMS_Port())
+        self.addStatusBar()
+
+    def addStatusBar(self):
+        statusBar = QStatusBar()
+        self.setStatusBar(statusBar)
+        self.timeLabel = QLabel(QDateTime.currentDateTime().toString('yyyy-MM-dd hh:mm:ss '))
+        statusBar.addPermanentWidget(self.timeLabel)
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.updateStatusBar)
+        self.timer.start(1000)  # update every second
+
+        print(self.centralWidget().minimumSizeHint())
+        self.setMinimumSize(self.centralWidget().minimumSizeHint())
+        self.adjustSize()
+        self.show()
+
+    def updateStatusBar(self):
+        self.timeLabel.setText(QDateTime.currentDateTime().toString('yyyy-MM-dd hh:mm:ss'))
+
 
 if __name__ == '__main__':
 

@@ -30,7 +30,7 @@ class M2(SerMeasure):
         self.name = name
         self.port = port
         self.m2 = 2    
-        self.n_meas = 2
+        self.n_meas = 3
         self.connected = self.is_open()
          
     def open(self):

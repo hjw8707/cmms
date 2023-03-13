@@ -19,6 +19,7 @@ class TPG36X(SerMeasure):
     def __init__(self, name, port):
         self.name = name
         self.port = port
+        self.n_meas = 2
         self.open()
 
     def open(self):

@@ -5,7 +5,7 @@ from serial import Serial
 from serial.tools.list_ports import comports
 
 ###################################################
-# class for reading the pressure from TPG36X
+# class for reading the pressure from TIC100
 #
 class TIC100(SerMeasure):
     vid_pid = (0x0403, 0x6001) # need to be revised
@@ -46,7 +46,14 @@ class TIC100(SerMeasure):
         self.ser.close()
     
     def is_open(self):
-        return self.status_querys()
+        if self.ser == None:
+            return False
+        else:
+            try:
+                r = self.status_querys()
+            except OSError:
+                return False
+            return r 
     
     def GetMeasure(self, i: int):
         if i >= self.n_meas: return 0
@@ -72,7 +79,9 @@ class TIC100(SerMeasure):
         if ans is None:
             return False
         status = list(map(int, ans.split(';')))
-        self.turbo_st, self.back_st, *self.gauge_st, *self.relay_st = status
+        self.turbo_st, self.back_st, *gauge_relay_st = status
+        self.gauge_st = gauge_relay_st[:3]
+        self.relay_st = gauge_relay_st[3:]
         return True
     
     def gauge_queryv(self, i: int): # i = 1, 2, 3
