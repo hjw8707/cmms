@@ -57,8 +57,9 @@ class TIC100(SerMeasure):
     
     def GetMeasure(self, i: int):
         if i >= self.n_meas: return 0
+        self.status_queryv()
         if self.gauge_st[i] == 0: return 0 # gauge is not connected
-        return self.gauge_queryv(i)
+        return float(self.gauge_queryv(i+1).split(';')[0]) # gauge number convention (1 ~ 3)
 
     def GetUnit(self, i: int):
         if i >= self.n_meas: return ''
@@ -88,14 +89,14 @@ class TIC100(SerMeasure):
         if i < 1 or i > 3: return 0. # Error
         data = self.send_queryv(912+i)
         if data is None: return 0.
-        return float(data[0])
+        return data
     
     #############################################################################
     def send_gcommand(self, oid: int, m: int):
-        self.ser.write( bytes('!C' + str(oid) + ' ' + str(m), 'utf8') )
+        self.ser.write( bytes('!C' + str(oid) + ' ' + str(m) + '\r', 'utf8') )
         #print("The sent command is: ",command)
-        answer = self.ser.readline().decode().rstrip() # return response from the unit
-        if not answer.index('*C'):
+        answer = self.ser.read_until(b'\r').decode().rstrip() # return response from the unit
+        if answer.index('*C') != 0:
             return False
         oid_a, r = list(map(int, answer[answer.index('*C')+2:].split()))
         if oid_a != oid or r != 0:
@@ -104,10 +105,10 @@ class TIC100(SerMeasure):
 
     def send_scommand(self, oid: int, data: str):
         if data == '': return False
-        self.ser.write( bytes('!S' + str(oid) + ' ' + data, 'utf8') )
+        self.ser.write( bytes('!S' + str(oid) + ' ' + data + '\r', 'utf8') )
         #print("The sent command is: ",command)
-        answer = self.ser.readline().decode().rstrip() # return response from the unit
-        if not answer.index('*S'):
+        answer = self.ser.read_until(b'\r').decode().rstrip() # return response from the unit
+        if answer.index('*S') != 0:
             return False
         oid_a, r = list(map(int, answer[answer.index('*S')+2:].split()))
         if oid_a != oid or r != 0:
@@ -115,10 +116,10 @@ class TIC100(SerMeasure):
         return True
 
     def send_querys(self, oid: int):
-        self.ser.write( bytes('?S' + str(oid), 'utf8') )
+        self.ser.write( bytes('?S' + str(oid) + '\r', 'utf8') )
         #print("The sent command is: ",command)
-        answer = self.ser.readline().decode().rstrip() # return response from the unit
-        if not answer.index('=S'):
+        answer = self.ser.read_until(b'\r').decode().rstrip() # return response from the unit
+        if answer.index('=S') != 0:
             return None
         answers= answer[answer.index('=S')+2:].split()
         oid_a = int(answers[0])
@@ -128,10 +129,11 @@ class TIC100(SerMeasure):
         return data
 
     def send_queryv(self, oid: int):
-        self.ser.write( bytes('?V' + str(oid), 'utf8') )
+        self.ser.write( bytes('?V' + str(oid) + '\r', 'utf8') )
         #print("The sent command is: ",command)
-        answer = self.ser.readline().decode().rstrip() # return response from the unit
-        if not answer.index('=V'):
+        answer = self.ser.read_until(b'\r').decode().rstrip()
+        # return response from the unit
+        if answer.index('=V') != 0:
             return None
         answers= answer[answer.index('=V')+2:].split()
         oid_a = int(answers[0])
