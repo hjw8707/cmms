@@ -1,4 +1,4 @@
-from sermeasure import SerMeasure
+from sermeasure import UnitType, SerMeasure
 
 class M1(SerMeasure):
     def __init__(self, name: str, port: str):
@@ -6,6 +6,7 @@ class M1(SerMeasure):
         self.port = port
         self.m1 = 1
         self.n_meas = 1
+        self.type = UnitType.Pres
         self.connected = self.is_open()
         
     def open(self):
@@ -31,6 +32,7 @@ class M2(SerMeasure):
         self.port = port
         self.m2 = 2    
         self.n_meas = 3
+        self.type = UnitType.Temp
         self.connected = self.is_open()
          
     def open(self):
@@ -47,4 +49,4 @@ class M2(SerMeasure):
         return self.m2
     
     def GetUnit(self, i: int):
-        return 'Pa'
+        return 'K'

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from sermeasure import SerMeasure
+from sermeasure import SerMeasure, UnitType
 from serial import Serial
 from serial.tools.list_ports import comports
 
@@ -21,6 +21,7 @@ class TIC100(SerMeasure):
         self.name: str   = name
         self.port: str   = port
         self.n_meas: int = 3
+        self.type = UnitType.Pres
         self.open()
         self.model:     str = ''
         self.sw_ver:    str = ''

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from sermeasure import SerMeasure
+from sermeasure import UnitType, SerMeasure
 from serial import Serial
 from serial.tools.list_ports import comports
 
@@ -20,6 +20,7 @@ class TPG36X(SerMeasure):
         self.name = name
         self.port = port
         self.n_meas = 2
+        self.type = UnitType.Pres
         self.open()
 
     def open(self):

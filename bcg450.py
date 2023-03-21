@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from sermeasure import SerMeasure
+from sermeasure import SerMeasure, UnitType
 from serial import Serial, serialutil
 from serial.tools.list_ports import comports
     
@@ -20,6 +20,7 @@ class BCG450(SerMeasure):
         self.name = name
         self.port = port
         self.n_meas = 1
+        self.type = UnitType.Pres
         self.open()
 
     def open(self):

@@ -9,7 +9,7 @@ import re
 import sys, inspect
 import datetime as dt
 from serman import SerMan
-from sermeasure import SerMeasure
+from sermeasure import UnitType, SerMeasure
 
 from m1 import M1, M2
 from tpg36x import TPG36X
@@ -17,12 +17,7 @@ from ls335 import LS335
 from tic100 import TIC100
 from bcg450 import BCG450
 
-from enum import Enum, auto
 from typing import Dict, List
-
-class UnitType(Enum):
-    Pres = auto()
-    Temp = auto()
 
 class CMMS_Port(QWidget):
     def __init__(self, *args, **kwargs):
@@ -155,12 +150,12 @@ class QMeasureUnit(QComboBox):
         return 0
 
 class QMeasureValue(QWidget):
-    def __init__(self, *args):
+    def __init__(self, type: UnitType, *args):
         super().__init__(*args)
         layout = QHBoxLayout()
         self.measure = QMeasureNumber()
         self.input_unit = ''
-        self.unit = QMeasureUnit(UnitType.Pres)
+        self.unit = QMeasureUnit(type)
         layout.addWidget(self.measure)
         layout.addWidget(self.unit)
         self.setLayout(layout)
@@ -184,7 +179,6 @@ class CMMS_Measure(QWidget):
         self.parent = parent
         self.initUI()
 
-            
     def initUI(self):
         lb_name = QLabel(self.dev.name)
         lb_name.setFixedWidth(50)
@@ -192,7 +186,7 @@ class CMMS_Measure(QWidget):
         lb_dev.setFixedWidth(50)
         self.lcd_meas: list[QMeasureValue] = []
         for i in range(self.dev.n_meas):
-            self.lcd_meas.append(QMeasureValue(self))
+            self.lcd_meas.append(QMeasureValue(self.dev.type, self))
             self.lcd_meas[-1].setInputUnit(self.dev.GetUnit(i))
         self.cb_indic = QCBIndicator('status')
         self.cb_indic.setFixedWidth(70)

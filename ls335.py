@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from lakeshore import Model335, generic_instrument
-from sermeasure import SerMeasure
+from sermeasure import SerMeasure, UnitType
 
 class LS335(SerMeasure):
     chs = ['A', 'B']
@@ -10,6 +10,7 @@ class LS335(SerMeasure):
         self.name = name
         self.port = port
         self.n_meas = 2
+        self.type = UnitType.Temp
         self.open()
 
     def open(self):

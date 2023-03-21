@@ -1,5 +1,10 @@
 from abc import *
 from serial import Serial
+from enum import Enum, auto
+
+class UnitType(Enum):
+    Pres = auto()
+    Temp = auto()
 
 # an abstract base class to declare methods for getting measurements via a serial port
 class SerMeasure(metaclass=ABCMeta):
@@ -10,6 +15,7 @@ class SerMeasure(metaclass=ABCMeta):
         self.name = name
         self.port = port
         self.n_meas = 1
+        self.type: UnitType = UnitType.Pres
         pass
     
     # an abstract method that should be implemented by the subclass for opening a serial connection
