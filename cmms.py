@@ -36,8 +36,12 @@ from ls335 import LS335
 from tic100 import TIC100
 from bcg450 import BCG450
 
+from enum import Enum, auto
 from typing import Dict, List
 
+class UnitType(Enum):
+    Pres = auto()
+    Temp = auto()
 
 class CMMS_Port(QWidget):
     def __init__(self, *args, **kwargs):
@@ -131,33 +135,66 @@ class QCBIndicator(QCheckBox):
 class QMeasureNumber(QLCDNumber):
     def __init__(self, *args) -> None:
         super().__init__(*args)
+        self.setDigitCount(10)
+        self.setMinimumWidth(150)
         self.setMinimumHeight(30)
         
+
+class QMeasureUnit(QComboBox):
+    pres_units = [ 'Torr', 'Pa', 'atm', 'psi' ]
+    pres_fac =  { 'Pa': 1, 'Torr': 0.00750064 , 'atm': 9.86923e-06, 'psi': 0.000145038 }
+
+    temp_units = [ 'K', '\N{DEGREE SIGN}C', '\N{DEGREE SIGN}F' ]
+
+    def __init__(self, type: UnitType, *args) -> None:
+        super().__init__(*args)
+        if   type == UnitType.Pres: self.addItems(self.pres_units)
+        elif type == UnitType.Temp: self.addItems(self.temp_units)
+        self.type = type
+        self.setCurrentIndex(0)
+        
+    def convUnit(self, inpUnit: str, inpVal: float):
+        if self.type is UnitType.Pres:
+            if inpUnit not in self.pres_units: return 0
+            return self.pres_fac[self.currentText()]/self.pres_fac[inpUnit]*inpVal
+        elif self.type is UnitType.Temp:
+            if inpUnit not in self.temp_units: return 0
+            if inpUnit == 'K':
+                if self.currentText() == 'K':                return inpVal
+                if self.currentText() == '\N{DEGREE SIGN}C': return inpVal - 273.15
+                if self.currentText() == '\N{DEGREE SIGN}F': return (inpVal - 273.15)*9/5+32
+            if inpUnit == '\N{DEGREE SIGN}C': 
+                if self.currentText() == 'K':                return inpVal + 273.15
+                if self.currentText() == '\N{DEGREE SIGN}C': return inpVal
+                if self.currentText() == '\N{DEGREE SIGN}F': return inpVal*9/5+32
+            if inpUnit == '\N{DEGREE SIGN}F':
+                if self.currentText() == 'K':                return (inpVal - 32)*5/9 + 273.15
+                if self.currentText() == '\N{DEGREE SIGN}C': return (inpVal - 32)*5/9
+                if self.currentText() == '\N{DEGREE SIGN}F': return inpVal
+        return 0
+
 class QMeasureValue(QWidget):
     def __init__(self, *args):
         super().__init__(*args)
         layout = QHBoxLayout()
-        self.lcdDigit = QMeasureNumber()
-        self.lcdOrder = QMeasureNumber()
-        self.unit = QLabel()
-        layout.addWidget(self.lcdDigit)
-        layout.addWidget(self.lcdOrder)
+        self.measure = QMeasureNumber()
+        self.input_unit = ''
+        self.unit = QMeasureUnit(UnitType.Pres)
+        layout.addWidget(self.measure)
         layout.addWidget(self.unit)
         self.setLayout(layout)
         #self.setLineWidth(0)
         #self.lcdDigit.setSmallDecimalPoint(True)
 
     def setNoValue(self):
-        self.lcdDigit.display('-----')
-        self.lcdOrder.display('-----')
+        self.measure.display('----------')
 
-    def setValue(self, value: float):
-        strVal = '%.3E' % value
-        self.lcdDigit.display(strVal[:-4])
-        self.lcdOrder.display(strVal[-4:])
+    def setInputValue(self, value: float):
+        strVal = '%.3E' % self.unit.convUnit(self.input_unit,value)
+        self.measure.display(strVal)
     
-    def setUnit(self, value: str):
-        self.unit.setText(value)
+    def setInputUnit(self, value: str):
+        self.input_unit = value
 
 class CMMS_Measure(QWidget):
     def __init__(self, dev: SerMeasure, parent: CMMS_Port, *args, **kwargs):
@@ -165,6 +202,7 @@ class CMMS_Measure(QWidget):
         self.dev = dev
         self.parent = parent
         self.initUI()
+
             
     def initUI(self):
         lb_name = QLabel(self.dev.name)
@@ -174,7 +212,7 @@ class CMMS_Measure(QWidget):
         self.lcd_meas: list[QMeasureValue] = []
         for i in range(self.dev.n_meas):
             self.lcd_meas.append(QMeasureValue(self))
-            self.lcd_meas[-1].setUnit(self.dev.GetUnit(i))
+            self.lcd_meas[-1].setInputUnit(self.dev.GetUnit(i))
         self.cb_indic = QCBIndicator('status')
         self.cb_indic.setFixedWidth(70)
         pb_close = QPushButton('Close')
@@ -197,7 +235,7 @@ class CMMS_Measure(QWidget):
         self.cb_indic.setChecked(self.dev.is_open())
         if self.cb_indic.isChecked():
             for i, lcd in enumerate(self.lcd_meas): 
-                lcd.setValue(self.dev.GetMeasure(i))
+                lcd.setInputValue(self.dev.GetMeasure(i))
         else:
             for i in self.lcd_meas: i.setNoValue()
         
@@ -221,7 +259,7 @@ class CMMS_GUI(QMainWindow):
         self.timer.timeout.connect(self.updateStatusBar)
         self.timer.start(1000)  # update every second
 
-        print(self.centralWidget().minimumSizeHint())
+        #print(self.centralWidget().minimumSizeHint())
         self.setMinimumSize(self.centralWidget().minimumSizeHint())
         self.adjustSize()
         self.show()

@@ -22,7 +22,7 @@ class M1(SerMeasure):
         return self.m1
     
     def GetUnit(self, i: int):
-        return 'A'
+        return 'Torr'
 
 
 class M2(SerMeasure):
@@ -47,4 +47,4 @@ class M2(SerMeasure):
         return self.m2
     
     def GetUnit(self, i: int):
-        return 'B'
+        return 'Pa'

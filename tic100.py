@@ -7,6 +7,7 @@ from serial.tools.list_ports import comports
 ###################################################
 # class for reading the pressure from TIC100
 #
+# TIC100 should be connected via RS232 (RS232-USB converter)
 class TIC100(SerMeasure):
     vid_pid = (0x0403, 0x6001) # need to be revised
     ETX = b'\x03'
