@@ -1,28 +1,9 @@
-##########################################
-# PyQt version check
-import pkg_resources
-inst_pack = pkg_resources.working_set
-list_inst_pack = ["%s" % i.key for i in inst_pack]
-if   'pyqt6' in list_inst_pack: 
-    pyqt = 'PyQt6'
-    from PyQt6 import QtGui
-    from PyQt6.QtCore import Qt, QTimer, QDateTime
-    from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, \
-                                QVBoxLayout, QHBoxLayout, QLineEdit, QWidget, QGridLayout, \
-                                QGroupBox, QComboBox, QMessageBox, QTabWidget, QCheckBox, \
-                                QLCDNumber, QStatusBar
-elif 'pyqt5' in list_inst_pack: 
-    pyqt = 'PyQt5'
-    from PyQt5 import QtGui
-    from PyQt5.QtCore import Qt, QTimer, QDateTime
-    from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, \
-                                QVBoxLayout, QHBoxLayout, QLineEdit, QWidget, QGridLayout, \
-                                QGroupBox, QComboBox, QMessageBox, QTabWidget, QCheckBox, \
-                                QLCDNumber, QStatusBar
-else:
-    print("No PyQt module found.")
-    exit()
-##########################################
+from PyQt5 import QtGui
+from PyQt5.QtCore import Qt, QTimer, QDateTime
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, \
+                            QVBoxLayout, QHBoxLayout, QLineEdit, QWidget, QGridLayout, \
+                            QGroupBox, QComboBox, QMessageBox, QTabWidget, QCheckBox, \
+                            QLCDNumber, QStatusBar
 
 import re
 import sys, inspect
