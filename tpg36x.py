@@ -146,7 +146,7 @@ class TPG36X(SerMeasure):
 
 
 if __name__=="__main__":
-    tpg = TPG(ser_num='AD0K7AX9')
+    tpg = TPG36X(ser_num='AD0K7AX9')
     print('Open? : ' + str(tpg.is_open()))
     print('Type  : ' + tpg.get_type())
     print('Model : ' + tpg.get_mod_no())

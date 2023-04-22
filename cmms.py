@@ -14,6 +14,7 @@ from sermeasure import UnitType, SerMeasure
 from m1 import M1, M2
 from tpg36x import TPG36X
 from ls335 import LS335
+from ls218 import LS218
 from tic100 import TIC100
 from bcg450 import BCG450
 
@@ -73,7 +74,7 @@ class CMMS_Port(QWidget):
     def ports_update(self):
         self.sm.load_ports()
         self.cb_portlist.clear()
-        self.cb_portlist.insertItems(0, self.sm.string_ports(False))          
+        self.cb_portlist.insertItems(0, self.sm.string_ports(True))          
     
     def add_dev(self):
         port = self.sm.get_port_dev(self.cb_portlist.currentIndex())
@@ -176,7 +177,7 @@ class CMMS_Measure(QWidget):
     def __init__(self, dev: SerMeasure, parent: CMMS_Port, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dev = dev
-        self.parent = parent
+        self.pare = parent
         self.initUI()
 
     def initUI(self):
@@ -192,7 +193,7 @@ class CMMS_Measure(QWidget):
         self.cb_indic.setFixedWidth(70)
         pb_close = QPushButton('Close')
         pb_close.setFixedWidth(70)
-        pb_close.clicked.connect(lambda: self.parent.close_dev(self))
+        pb_close.clicked.connect(lambda: self.pare.close_dev(self))
 
         layout = QHBoxLayout()
         layout.addWidget(lb_name)
