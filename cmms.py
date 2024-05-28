@@ -11,7 +11,7 @@ import datetime as dt
 from serman import SerMan
 from sermeasure import UnitType, SerMeasure
 
-from m1 import M1, M2
+from m1 import M1, M2, M3
 from tpg36x import TPG36X
 from ls335 import LS335
 from ls218 import LS218
@@ -91,7 +91,7 @@ class CMMS_Port(QWidget):
         self.lo_devices.removeWidget(meas)
         self.dev_list.remove(meas)
         del meas
-        print(self.parentWidget().minimumSizeHint())
+        #print(self.parentWidget().minimumSizeHint())
         self.parentWidget().adjustSize()
         
     def timeout(self):
@@ -123,10 +123,14 @@ class QMeasureUnit(QComboBox):
 
     temp_units = [ 'K', '\N{DEGREE SIGN}C', '\N{DEGREE SIGN}F' ]
 
+    perc_units = [ '%', '\N{PER MILLE SIGN}', ' ']
+    perc_fac =  { '%': 1, '\N{PER MILLE SIGN}': 10 , ' ': 0.01 }
+
     def __init__(self, type: UnitType, *args) -> None:
         super().__init__(*args)
         if   type == UnitType.Pres: self.addItems(self.pres_units)
         elif type == UnitType.Temp: self.addItems(self.temp_units)
+        elif type == UnitType.Perc: self.addItems(self.perc_units)
         self.type = type
         self.setCurrentIndex(0)
         
@@ -148,6 +152,9 @@ class QMeasureUnit(QComboBox):
                 if self.currentText() == 'K':                return (inpVal - 32)*5/9 + 273.15
                 if self.currentText() == '\N{DEGREE SIGN}C': return (inpVal - 32)*5/9
                 if self.currentText() == '\N{DEGREE SIGN}F': return inpVal
+        elif self.type is UnitType.Perc:
+            if inpUnit not in self.temp_units: return 0
+            return self.perc_fac[self.currentText()]/self.perc_fac[inpUnit]*inpVal
         return 0
 
 class QMeasureValue(QWidget):
@@ -187,7 +194,7 @@ class CMMS_Measure(QWidget):
         lb_dev.setFixedWidth(50)
         self.lcd_meas: list[QMeasureValue] = []
         for i in range(self.dev.n_meas):
-            self.lcd_meas.append(QMeasureValue(self.dev.type, self))
+            self.lcd_meas.append(QMeasureValue(self.dev.type[i], self))
             self.lcd_meas[-1].setInputUnit(self.dev.GetUnit(i))
         self.cb_indic = QCBIndicator('status')
         self.cb_indic.setFixedWidth(70)
