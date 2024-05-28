@@ -66,7 +66,15 @@ class TIC100(SerMeasure):
     def GetUnit(self, i: int):
         if i >= self.n_meas: return ''
         return 'Pa' # only pascal is used
+
+    def GetTMPStatus(self):
+        self.status_queryv() 
+        return int(self.turbo_st)
     
+    def GetTMPSpeed(self):
+        return float(self.tspeed_queryv().split(';')[0]) # speed in %
+        
+
     def status_querys(self): # System string
         ans = self.send_querys(902)
         if ans is None: return False
@@ -86,7 +94,30 @@ class TIC100(SerMeasure):
         self.gauge_st = gauge_relay_st[:3]
         self.relay_st = gauge_relay_st[3:]
         return True
+
+    def turbo_queryv(self):
+        ans = self.send_queryv(904)
+        if ans is None: return False
+        status = [x.strip() for x in ans.split(';')] # Pump status - state; alert ID; priority
+        self.turbo_status = status[0]
+        self.alert = status[1]
+        return True
     
+    def tspeed_queryv(self):
+        data = self.send_queryv(905)
+        if data is None: return 0.
+        return data
+    
+    def tnormal_queryv(self):
+        data = self.send_queryv(907)
+        if data is None: return 0.
+        return data
+
+    def tstandby_queryv(self):
+        data = self.send_queryv(908)
+        if data is None: return 0.
+        return data     
+
     def gauge_queryv(self, i: int): # i = 1, 2, 3
         if i < 1 or i > 3: return 0. # Error
         data = self.send_queryv(912+i)
