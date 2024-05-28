@@ -25,13 +25,12 @@ class BCG450(SerMeasure):
 
     def open(self):
         for port in comports():
-            if (port.vid, port.pid) == self.vid_pid:
-                self.ser = Serial(self.port, timeout=1, write_timeout=1) # default is okay
-                self.ser.write(b'\n')
-                self.ser.reset_input_buffer()
-                if self.ser and self.is_open():
-                   print('bcg450 opened')
-                   break
+            self.ser = Serial(self.port, timeout=1, write_timeout=1) # default is okay
+            self.ser.write(b'\n')
+            self.ser.reset_input_buffer()
+            if self.ser and self.is_open():
+                print('bcg450 opened')
+                break
         else:
             self.ser = None
         
