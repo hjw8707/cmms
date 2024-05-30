@@ -15,7 +15,7 @@ class SerMeasure(metaclass=ABCMeta):
     def __init__(self, name: str, port: str):
         self.name = name
         self.port = port
-        self.n_meas = 1
+        self.n_meas, self.n_state, self.n_status = 1, 1, 1
         self.type: list[UnitType] = [UnitType.Pres]
         pass
     
@@ -45,3 +45,21 @@ class SerMeasure(metaclass=ABCMeta):
     def GetUnit(self, i: int):
         if i >= self.n_meas: return ''
         pass
+
+    @abstractmethod
+    def GetStateName(self, i: int):
+        if i >= self.n_state: return 'name'
+        pass
+
+    @abstractmethod
+    def GetState(self, i: int):
+        if i >= self.n_state: return ''
+        pass
+
+    @abstractmethod
+    def GetStatusName(self, i: int):
+        if i >= self.n_status: return ''
+
+    @abstractmethod
+    def GetStatus(self, i: int):
+        if i >= self.n_status: return False

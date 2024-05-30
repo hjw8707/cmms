@@ -153,7 +153,7 @@ class QMeasureUnit(QComboBox):
                 if self.currentText() == '\N{DEGREE SIGN}C': return (inpVal - 32)*5/9
                 if self.currentText() == '\N{DEGREE SIGN}F': return inpVal
         elif self.type is UnitType.Perc:
-            if inpUnit not in self.temp_units: return 0
+            if inpUnit not in self.perc_units: return 0
             return self.perc_fac[self.currentText()]/self.perc_fac[inpUnit]*inpVal
         return 0
 
@@ -173,12 +173,36 @@ class QMeasureValue(QWidget):
     def setNoValue(self):
         self.measure.display('----------')
 
-    def setInputValue(self, value: float):
-        strVal = '%.3E' % self.unit.convUnit(self.input_unit,value)
+    def setInputValue(self, value: float, flagSci = True):
+        convValue = self.unit.convUnit(self.input_unit,value)
+        strVal = ('%.3E' if flagSci else '%.3f') % convValue
         self.measure.display(strVal)
     
     def setInputUnit(self, value: str):
         self.input_unit = value
+
+class QState(QWidget):
+    def __init__(self, name: str, *args):
+        super().__init__(*args)
+        layout = QHBoxLayout()
+        self.name = QLabel(name)
+        self.state = QLineEdit('State')
+        layout.addWidget(self.name)
+        layout.addWidget(self.state)
+        self.setLayout(layout)
+        #self.setLineWidth(0)
+        #self.lcdDigit.setSmallDecimalPoint(True)
+
+    def setState(self, stat: str):
+        self.state.setText(stat)
+
+class QStatus(QCBIndicator):
+    def __init__(self, *args):
+        super().__init__(*args)
+    
+    def setStatus(self, status: bool):
+        self.setChecked(status)
+
 
 class CMMS_Measure(QWidget):
     def __init__(self, dev: SerMeasure, parent: CMMS_Port, *args, **kwargs):
@@ -192,12 +216,23 @@ class CMMS_Measure(QWidget):
         lb_name.setFixedWidth(50)
         lb_dev  = QLabel(self.dev.__class__.__name__)
         lb_dev.setFixedWidth(50)
-        self.lcd_meas: list[QMeasureValue] = []
+
+        self.q_meas: list[QMeasureValue] = []
         for i in range(self.dev.n_meas):
-            self.lcd_meas.append(QMeasureValue(self.dev.type[i], self))
-            self.lcd_meas[-1].setInputUnit(self.dev.GetUnit(i))
+            self.q_meas.append(QMeasureValue(self.dev.type[i], self))
+            self.q_meas[-1].setInputUnit(self.dev.GetUnit(i))
+
+        self.q_states: list[QState] = []
+        for i in range(self.dev.n_state):
+            self.q_states.append(QState(self.dev.GetStateName(i), self))
+
+        self.q_status: list[QStatus] = []
+        for i in range(self.dev.n_state):
+            self.q_status.append(QStatus(self.dev.GetStatusName(i), self))
+
         self.cb_indic = QCBIndicator('status')
         self.cb_indic.setFixedWidth(70)
+
         pb_close = QPushButton('Close')
         pb_close.setFixedWidth(70)
         pb_close.clicked.connect(lambda: self.pare.close_dev(self))
@@ -205,7 +240,17 @@ class CMMS_Measure(QWidget):
         layout = QHBoxLayout()
         layout.addWidget(lb_name)
         layout.addWidget(lb_dev)
-        [layout.addWidget(i) for i in self.lcd_meas]
+        layoutm = QVBoxLayout()
+        layoutm_state  = QHBoxLayout()
+        [layoutm_state.addWidget(i) for i in self.q_states]
+        layoutm_status = QHBoxLayout()
+        [layoutm_status.addWidget(i) for i in self.q_status]        
+        layoutm_meas   = QHBoxLayout()        
+        [layoutm_meas.addWidget(i) for i in self.q_meas]
+        layoutm.addLayout(layoutm_state)
+        layoutm.addLayout(layoutm_status)
+        layoutm.addLayout(layoutm_meas)
+        layout.addLayout(layoutm)
         layout.addWidget(self.cb_indic)
         layout.addWidget(pb_close)
         self.setLayout(layout)
@@ -217,10 +262,14 @@ class CMMS_Measure(QWidget):
             self.dev.open() 
         self.cb_indic.setChecked(self.dev.is_open())
         if self.cb_indic.isChecked():
-            for i, lcd in enumerate(self.lcd_meas): 
-                lcd.setInputValue(self.dev.GetMeasure(i))
+            for i, lcd in enumerate(self.q_meas): 
+                lcd.setInputValue(self.dev.GetMeasure(i), self.dev.type[i] != UnitType.Perc)
+            for i, state in enumerate(self.q_states): 
+                state.setState(self.dev.GetState(i))
+            for i, status in enumerate(self.q_status): 
+                status.setStatus(self.dev.GetStatus(i))                                
         else:
-            for i in self.lcd_meas: i.setNoValue()
+            for i in self.q_meas: i.setNoValue()
         
         
 class CMMS_GUI(QMainWindow):

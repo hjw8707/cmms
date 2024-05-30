@@ -11,8 +11,8 @@ class LS218(SerMeasure):
     def __init__(self, name, port):
         self.name = name
         self.port = port
-        self.n_meas = 8
-        self.type = UnitType.Temp
+        self.n_meas, self.n_state, self.n_status = 8, 0, 0
+        self.type = self.n_meas * [UnitType.Temp]
         self.open()
 
     def open(self):
@@ -49,6 +49,11 @@ class LS218(SerMeasure):
     
     def GetUnit(self, i: int):
         return 'K'
+
+    def GetStateName(self, i: int):  pass
+    def GetState(self, i: int):      pass
+    def GetStatusName(self, i: int): pass
+    def GetStatus(self, i: int):     pass
 
     def get_mod_no(self):
         return self.query_idn()[1]

@@ -9,8 +9,8 @@ class LS335(SerMeasure):
     def __init__(self, name, port):
         self.name = name
         self.port = port
-        self.n_meas = 2
-        self.type = UnitType.Temp
+        self.n_meas, self.n_state, self.n_status = 2, 0, 0
+        self.type = self.n_meas * [UnitType.Temp]
         self.open()
 
     def open(self):
@@ -41,6 +41,11 @@ class LS335(SerMeasure):
     
     def GetUnit(self, i: int):
         return 'K'
+
+    def GetStateName(self, i: int):  pass
+    def GetState(self, i: int):      pass
+    def GetStatusName(self, i: int): pass
+    def GetStatus(self, i: int):     pass
 
     def get_mod_no(self):
         return self.tc.model_number

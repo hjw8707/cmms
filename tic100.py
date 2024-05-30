@@ -20,8 +20,9 @@ class TIC100(SerMeasure):
     def __init__(self, name: str, port: str):
         self.name: str   = name
         self.port: str   = port
-        self.n_meas: int = 3
-        self.type = UnitType.Pres
+        self.n_meas, self.n_state, self.n_status = 3, 1, 0
+        self.type: list[UnitType] = self.n_meas * [UnitType.Pres] 
+
         self.open()
         self.model:     str = ''
         self.sw_ver:    str = ''
@@ -65,6 +66,17 @@ class TIC100(SerMeasure):
     def GetUnit(self, i: int):
         if i >= self.n_meas: return ''
         return 'Pa' # only pascal is used
+
+    def GetStateName(self, i: int):  
+        if i == 0: return 'TMP State'
+        else: return ''
+
+    def GetState(self, i: int):
+        if i == 0: return 'test'
+        else: return ''
+
+    def GetStatusName(self, i: int): pass
+    def GetStatus(self, i: int):     pass
 
     def GetTMPStatus(self):
         self.status_queryv() 

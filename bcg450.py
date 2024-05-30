@@ -19,8 +19,8 @@ class BCG450(SerMeasure):
     def __init__(self, name, port):
         self.name = name
         self.port = port
-        self.n_meas = 1
-        self.type = UnitType.Pres
+        self.n_meas, self.n_state, self.n_status = 1, 0, 0
+        self.type = [UnitType.Pres]
         self.open()
 
     def open(self):
@@ -54,7 +54,12 @@ class BCG450(SerMeasure):
     def GetUnit(self, i: int):
         if self.ser: return self.get_unit()
         else       : return ''
-    
+
+    def GetStateName(self, i: int):  pass
+    def GetState(self, i: int):      pass
+    def GetStatusName(self, i: int): pass
+    def GetStatus(self, i: int):     pass
+
     #########################################
     # read unit
     def get_unit(self):

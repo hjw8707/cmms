@@ -19,8 +19,8 @@ class TPG36X(SerMeasure):
     def __init__(self, name, port):
         self.name = name
         self.port = port
-        self.n_meas = 2
-        self.type = UnitType.Pres
+        self.n_meas, self.n_state, self.n_status = 2, 0, 0
+        self.type: list[UnitType] = self.n_meas * [UnitType.Pres]
         self.open()
 
     def open(self):
@@ -45,6 +45,11 @@ class TPG36X(SerMeasure):
     def GetUnit(self, i: int):
         if self.ser: return self.get_uni()
         else       : return ''
+
+    def GetStateName(self, i: int):  pass
+    def GetState(self, i: int):      pass
+    def GetStatusName(self, i: int): pass
+    def GetStatus(self, i: int):     pass
 
     def is_open(self):
         if self.ser == None:
