@@ -20,8 +20,8 @@ class TIC100(SerMeasure):
     def __init__(self, name: str, port: str):
         self.name: str   = name
         self.port: str   = port
-        self.n_meas, self.n_state, self.n_status = 3, 1, 0
-        self.type: list[UnitType] = self.n_meas * [UnitType.Pres] 
+        self.n_meas, self.n_state, self.n_status = 4, 1, 2
+        self.type: list[UnitType] = [UnitType.Pres, UnitType.Pres, UnitType.Pres, UnitType.Perc]
 
         self.open()
         self.model:     str = ''
@@ -59,12 +59,14 @@ class TIC100(SerMeasure):
     
     def GetMeasure(self, i: int):
         if i >= self.n_meas: return 0
+        if i == self.n_meas - 1:  return self.GetTMPSpeed()
         self.status_queryv()
         if self.gauge_st[i] == 0: return 0 # gauge is not connected
         return float(self.gauge_queryv(i+1).split(';')[0]) # gauge number convention (1 ~ 3)
 
     def GetUnit(self, i: int):
         if i >= self.n_meas: return ''
+        if i == self.n_meas - 1: return '%'
         return 'Pa' # only pascal is used
 
     def GetStateName(self, i: int):  
@@ -72,11 +74,22 @@ class TIC100(SerMeasure):
         else: return ''
 
     def GetState(self, i: int):
-        if i == 0: return 'test'
+        states = ['Stopped', 'Starting Delay',
+                  'Stopping Short Delay', 'Stopping Normal Delay',
+                  'Running', 'Accelerating',
+                  'Fault Braking', 'Braking' ]
+        if i == 0:
+            return states[self.GetTMPStatus()]
         else: return ''
 
-    def GetStatusName(self, i: int): pass
-    def GetStatus(self, i: int):     pass
+    def GetStatusName(self, i: int):
+        statusnames = ['TMP Normal', 'TMP Standby' ]
+        return statusnames[i]
+    
+    def GetStatus(self, i: int):
+        if i == 0: return self.GetTMPNormal()
+        if i == 1: return self.GetTMPStandby()
+        return True
 
     def GetTMPStatus(self):
         self.status_queryv() 
@@ -84,7 +97,20 @@ class TIC100(SerMeasure):
     
     def GetTMPSpeed(self):
         return float(self.tspeed_queryv().split(';')[0]) # speed in %
-        
+
+    def GetTMPNormal(self):
+        ans = self.send_queryv(907)
+        if ans is None: return False
+        if   int(ans.split(';')[0]) == 0: return False
+        elif int(ans.split(';')[0]) == 4: return True
+        else: return False
+
+    def GetTMPStandby(self):
+        ans = self.send_queryv(908)
+        if ans is None: return False
+        if   int(ans.split(';')[0]) == 0: return False
+        elif int(ans.split(';')[0]) == 4: return True
+        else: return False        
 
     def status_querys(self): # System string
         ans = self.send_querys(902)

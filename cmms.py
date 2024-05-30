@@ -227,7 +227,7 @@ class CMMS_Measure(QWidget):
             self.q_states.append(QState(self.dev.GetStateName(i), self))
 
         self.q_status: list[QStatus] = []
-        for i in range(self.dev.n_state):
+        for i in range(self.dev.n_status):
             self.q_status.append(QStatus(self.dev.GetStatusName(i), self))
 
         self.cb_indic = QCBIndicator('status')
