@@ -20,6 +20,8 @@ from bcg450 import BCG450
 
 from typing import Dict, List
 
+update_t = 3000
+
 class CMMS_Port(QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -28,7 +30,7 @@ class CMMS_Port(QWidget):
         self.dev_list: List[CMMS_Measure] = []
         self.initUI()
         self.timer = QTimer()
-        self.timer.setInterval(1000)
+        self.timer.setInterval(update_t)
         self.timer.timeout.connect(self.timeout)
         self.timer.start()
 
@@ -80,7 +82,7 @@ class CMMS_Port(QWidget):
         port = self.sm.get_port_dev(self.cb_portlist.currentIndex())
         dev_cl  = self.cb_devlist.currentText()
         name = self.le_devname.text().strip()
-        if name == '': name = dev_cl
+        if name == '': name = dev_cl + str(len(self.dev_list))
         dev_class_ = getattr(sys.modules[__name__], dev_cl, None)
         dev = dev_class_(name, port)
         self.dev_list.append(CMMS_Measure(dev, self))
@@ -209,6 +211,11 @@ class CMMS_Measure(QWidget):
         super().__init__(*args, **kwargs)
         self.dev = dev
         self.pare = parent
+        ####################
+        # logger
+        now = QDateTime.currentDateTime().toString('yyMMdd_hhmmss')
+        self.logger = open('log/%s_%s_%s.txt' % (self.dev.__class__.__name__, self.dev.name, now), 'w')
+        ####################
         self.initUI()
 
     def initUI(self):
@@ -262,12 +269,21 @@ class CMMS_Measure(QWidget):
             self.dev.open() 
         self.cb_indic.setChecked(self.dev.is_open())
         if self.cb_indic.isChecked():
-            for i, lcd in enumerate(self.q_meas): 
-                lcd.setInputValue(self.dev.GetMeasure(i), self.dev.type[i] != UnitType.Perc)
-            for i, state in enumerate(self.q_states): 
-                state.setState(self.dev.GetState(i))
-            for i, status in enumerate(self.q_status): 
-                status.setStatus(self.dev.GetStatus(i))                                
+            logstr = QDateTime.currentDateTime().toString('yyyy-MM-dd hh:mm:ss ')
+            for i, lcd in enumerate(self.q_meas):
+                meas = self.dev.GetMeasure(i)
+                lcd.setInputValue(meas, self.dev.type[i] != UnitType.Perc)
+                logstr = logstr + ('%6.3E ' % meas)
+            for i, state in enumerate(self.q_states):
+                stat = self.dev.GetState(i)
+                state.setState(stat)
+                logstr = logstr + ('%s ' % stat)
+            for i, status in enumerate(self.q_status):
+                statu = self.dev.GetStatus(i)
+                status.setStatus(statu)
+                logstr = logstr + str(statu) + ' '
+            self.logger.write(logstr + '\n')
+            self.logger.flush()
         else:
             for i in self.q_meas: i.setNoValue()
         
@@ -289,7 +305,7 @@ class CMMS_GUI(QMainWindow):
         statusBar.addPermanentWidget(self.timeLabel)
         self.timer = QTimer()
         self.timer.timeout.connect(self.updateStatusBar)
-        self.timer.start(1000)  # update every second
+        self.timer.start(update_t)  # update every second
 
         #print(self.centralWidget().minimumSizeHint())
         self.setMinimumSize(self.centralWidget().minimumSizeHint())
