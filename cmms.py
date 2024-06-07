@@ -17,6 +17,7 @@ from ls335 import LS335
 from ls218 import LS218
 from tic100 import TIC100
 from bcg450 import BCG450
+from vsm7xx import VSM7XX
 
 from typing import Dict, List
 
@@ -120,8 +121,8 @@ class QMeasureNumber(QLCDNumber):
         
 
 class QMeasureUnit(QComboBox):
-    pres_units = [ 'Torr', 'Pa', 'atm', 'psi' ]
-    pres_fac =  { 'Pa': 1, 'Torr': 0.00750064 , 'atm': 9.86923e-06, 'psi': 0.000145038 }
+    pres_units = [ 'Torr', 'Pa', 'atm', 'psi', 'mbar' ]
+    pres_fac =  { 'Pa': 1, 'Torr': 0.00750064 , 'atm': 9.86923e-06, 'psi': 0.000145038, 'mbar': 0.01}
 
     temp_units = [ 'K', '\N{DEGREE SIGN}C', '\N{DEGREE SIGN}F' ]
 
