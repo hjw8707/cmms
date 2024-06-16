@@ -28,6 +28,11 @@ class SerMeasure(metaclass=ABCMeta):
     @abstractmethod
     def is_open(self):
         pass
+
+    @abstractmethod
+    def is_this(self):
+        return True or False
+        pass
     
     # an abstract method that should be implemented by the subclass for closing the serial connection    
     @abstractmethod

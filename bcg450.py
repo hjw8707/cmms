@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from sermeasure import SerMeasure, UnitType
-from serial import Serial, serialutil
+from serial import Serial, serialutil, SerialException, SerialTimeoutException
 from serial.tools.list_ports import comports
     
 ##############################################
@@ -21,39 +21,48 @@ class BCG450(SerMeasure):
         self.port = port
         self.n_meas, self.n_state, self.n_status = 1, 0, 0
         self.type = [UnitType.Pres]
-        self.open()
+        self.ser = None
+        self.ok = False
+        print(f'bcg450 with name: {self.name} and port: {self.port}  opened')
+
+        self.pres = 0
+        self.unit = 0 # 0 ~ 2 (mbar, torr, Pa)
+        self.emis = 0 # 0 ~ 3 (emis. off, 25 uA, 5 mA, degas)
+        self.err_dia = False
+        self.err_pirani = False
+        self.err_BA = False
+        self.err_EL = False
+
 
     def open(self):
-        for port in comports():
+        try: 
             self.ser = Serial(self.port, timeout=1, write_timeout=1) # default is okay
-            self.ser.write(b'\n')
-            self.ser.reset_input_buffer()
-            if self.ser and self.is_open():
-                print('bcg450 opened')
-                break
-        else:
-            self.ser = None
+            #self.ser.write(b'\n')
+            #self.ser.reset_input_buffer()
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in open: {str(e)}")
+            self.ok = False
+        else: self.ok = True
         
     def close(self):
-        self.ser.close()
+        if self.ser is None: return
+        try: self.ser.close()
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in close: {str(e)}")
+        self.ser = None
+        self.ok = False
         
     def is_open(self):
-        if self.ser == None:
-            return False
-        else:
-            try:
-                self.ser.read(1)
-            except serialutil.SerialException:
-                return False
-            return True           
+        return self.ok        
     
+    def is_this(self):
+        pass
+
     def GetMeasure(self, i: int):
-        if self.ser: return self.get_pr()
-        else       : return 0
+        return self.get_pr() if self.ok else 0
     
     def GetUnit(self, i: int):
-        if self.ser: return self.get_unit()
-        else       : return ''
+        return self.get_unit() if self.ok else ''
 
     def GetStateName(self, i: int):  pass
     def GetState(self, i: int):      pass
@@ -64,37 +73,84 @@ class BCG450(SerMeasure):
     # read unit
     def get_unit(self):
         unit_name = [ 'mbar', 'Torr', 'Pa' ]
-        s = self.get_str()
-        unit = (s[2] >> 4) & 0x3
-        return unit_name[unit]
+        self.get_str()
+        return unit_name[self.unit] if self.ok else None
     #########################################
     
     #########################################
     # read pressure
     def get_pr(self):
         unit_const = [ 12.5, 12.625, 10.5 ] # mbar, Torr, Pa
-        s = self.get_str()
-        unit = (s[2] >> 4) & 0x3
-        return 10**((s[4]*256+s[5])/4000 - unit_const[unit])
+        self.get_str()
+        return 10**(self.pres/4000 - unit_const[self.unit]) if self.ok else None
     #########################################
     
+    def set_unit(self, u):
+        unit_name = [ 'mbar', 'Torr', 'Pa' ]
+        try: ind = unit_name.index(u)
+        except (ValueError) as e:
+            print(f'Error in set_unit: {str(e)}')
+            return
+        self.send_str(bytes.fromhex('108E'), unit_name.index(u))
+
+    def store_unit(self):
+        self.send_str(bytes.fromhex('2007'), 0)        
+
     #########################################
     # read recent string
     def get_str(self):
-        self.ser.reset_input_buffer()
-        r = self.ser.read(18)
+        try:
+            self.open()
+            self.ser.reset_input_buffer()
+            r = self.ser.read(18)
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in get_str: {str(e)}")
+            self.ok = False
+            return
+        if len(r) < 18:
+            print("Error in get_str: Shorter string")
+            self.ok = False
+            self.close()
+            return
         for i in range(0,10):
             if r[i] == 7 and r[i+1] == 5:
                 cs = sum(r[i+1:i+8]) % 256
-                if r[i+8] == cs:
-                    return r[i:i+9]
+                if r[i+8] != cs: continue
+                # found the right string
+                self.emis = r[i+2] & 0x3
+                self.unit = (r[i+2] >> 4) & 0x3
+                self.err_dia = ((r[i+3] & 0x1) == 0x1)
+                self.err_pirani = ((r[i+3] & 0x4) == 0x4)
+                self.err_BA = ((r[i+3] & 0x10) == 0x10)
+                self.err_BL = ((r[i+3] & 0x40) == 0x40)
+                self.pres = r[i+4]*256+r[i+5]
+                self.ok = True
+                self.close()
+                return
+        print("Error in get_str: Cannot find a good string")
+        self.ok = False
+        self.close()
     #########################################            
-                
 
-    
+    #########################################
+    # write recent string
+    def send_str(self, comm, val):
+        try:
+            self.open()
+            self.ser.reset_output_buffer()
+            b = bytearray(bytes.fromhex('03'))
+            b += bytes.fromhex(comm)
+            b += val.to_bytes()
+            b += sum(b[1:4]).to_bytes()
+            self.ser.write(b)
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in send_str: {str(e)}")
+            self.ok = False
+            return
+        else:
+            self.ok = True
+            return
 ########################################################################################################################        
-
-
 if __name__=="__main__":
     bcg = BCG450()
     print(bcg.get_str())

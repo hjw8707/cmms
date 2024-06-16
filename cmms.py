@@ -11,13 +11,7 @@ import datetime as dt
 from serman import SerMan
 from sermeasure import UnitType, SerMeasure
 
-from m1 import M1, M2, M3
-from tpg36x import TPG36X
-from ls335 import LS335
-from ls218 import LS218
-from tic100 import TIC100
-from bcg450 import BCG450
-from vsm7xx import VSM7XX
+from sermeasure_list import *
 
 from typing import Dict, List
 

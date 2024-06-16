@@ -1,4 +1,7 @@
+import serial
 import serial.tools.list_ports
+from sermeasure import SerMeasure
+from sermeasure_list import *
 
 class SerMan:
     def __init__(self):
@@ -43,8 +46,22 @@ class SerMan:
     def print_ports(self, port_only: bool = True):
         print('\n'.join(self.string_ports(port_only)))
 
+    def find_port_class(self, port):
+        if port is None:
+            print('Cannot find such a port.')
+            return None
+        for cl in serm_class_list:
+            try:
+                dev = cl('port_check', port)
+                if dev.is_this(): return cl
+            except (serial.SerialException, TypeError, UnicodeDecodeError) as e:
+                print(f"Error: {str(e)}")
+                continue
+        return None
+
 if __name__ == "__main__":
     sm = SerMan()
     sm.print_ports(False)
     print(sm.get_port_name(0))
     print(sm.get_port_dev(0))
+    sm.find_port_class(sm.get_port(0))

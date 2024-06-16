@@ -159,8 +159,9 @@ class VSM7XX(SerMeasure):
 
 
 if __name__=="__main__":
-    vsm = VSM7XX(name='vsm', port='COM3')
-    #vsm.verbose = True
-    print(vsm.GetMeasure(0))
-    print(vsm.GetUnit(0))
+    vsm = VSM7XX(name='vsm', port='/dev/cu.usbserial-AB0PBQ3U')
+    vsm.verbose = True
+    print(vsm.get_type())
+    #print(vsm.GetMeasure(0))
+    #print(vsm.GetUnit(0))
 
