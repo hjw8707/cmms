@@ -56,7 +56,8 @@ class BCG450(SerMeasure):
         return self.ok        
     
     def is_this(self):
-        pass
+        self.get_str()
+        return self.ok
 
     def GetMeasure(self, i: int):
         return self.get_pr() if self.ok else 0
