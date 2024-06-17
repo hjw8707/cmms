@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from sermeasure import SerMeasure, UnitType
-from serial import Serial, serialutil, SerialException, SerialTimeoutException
+from serial import Serial, SerialException, SerialTimeoutException
 from serial.tools.list_ports import comports
     
 ##############################################
@@ -60,10 +60,10 @@ class BCG450(SerMeasure):
         return self.ok
 
     def GetMeasure(self, i: int):
-        return self.get_pr() if self.ok else 0
+        return self.get_pr()
     
     def GetUnit(self, i: int):
-        return self.get_unit() if self.ok else ''
+        return self.get_unit()
 
     def GetStateName(self, i: int):  pass
     def GetState(self, i: int):      pass

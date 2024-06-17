@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 
 from sermeasure import UnitType, SerMeasure
-from serial import Serial
+from serial import Serial, SerialException, SerialTimeoutException
 from serial.tools.list_ports import comports
+from typing import Dict, List
 
 ###################################################
 # class for reading the pressure from TPG36X
@@ -21,47 +22,45 @@ class TPG36X(SerMeasure):
         self.port = port
         self.n_meas, self.n_state, self.n_status = 2, 0, 0
         self.type: list[UnitType] = self.n_meas * [UnitType.Pres]
-        self.open()
+
+        self.ok = False
+        self.verbose = False
+        #self.open()
 
     def open(self):
-        for port in comports():
-            if (port.vid, port.pid) == self.vid_pid:
-                self.ser = Serial(self.port, timeout=1, write_timeout=1) # default is okay
-                self.ser.write(b'\n')
-                self.ser.reset_input_buffer()
-                if self.ser and self.is_open():
-                   print('tpg opened')
-                   break
-        else:
-            self.ser = None
+        try: 
+            self.ser = Serial(self.port, timeout=1, write_timeout=1) # default is okay
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in open: {str(e)}")
+            self.ok = False
+        else: self.ok = True
         
     def close(self):
-        self.ser.close()
+        if self.ser is None: return
+        try: self.ser.close()
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in close: {str(e)}")
+        self.ser = None
+        self.ok = False
+
+    def is_open(self):
+        return self.ok
+
+    def is_this(self):
+        return (self.get_type().startswith('TPG36'))
 
     def GetMeasure(self, i: int):
-        if self.ser: return self.get_pr1()
-        else       : return 0
+        if i == 0: r = self.get_pr1()
+        else: r = self.get_pr2()
+        return r
     
     def GetUnit(self, i: int):
-        if self.ser: return self.get_uni()
-        else       : return ''
+        return self.get_uni()
 
     def GetStateName(self, i: int):  pass
     def GetState(self, i: int):      pass
     def GetStatusName(self, i: int): pass
-    def GetStatus(self, i: int):     pass
-
-    def is_open(self):
-        if self.ser == None:
-            return False
-        else:
-            try:
-                r = self.comm_ayt()
-            except OSError:
-                return False
-            if len(r) < 1 or r[0] == '':
-                return False
-            return True        
+    def GetStatus(self, i: int):     pass  
     
     #########################################
     # pressure of gauge 1
@@ -77,8 +76,12 @@ class TPG36X(SerMeasure):
     #        -6  = idenfication error
     def get_pr1(self):
         r = self.comm_pr1()
-        if r[0] == '':
-            return 0
+        if r is None: return 0
+        return float(r[1])
+    
+    def get_pr2(self):
+        r = self.comm_pr1()
+        if r is None: return 0
         return float(r[1])
     #########################################
 
@@ -88,16 +91,15 @@ class TPG36X(SerMeasure):
     def get_uni(self):
         units = ['mbar', 'Torr', 'Pa', 'Micron', 'hPa', 'Volt' ]
         r = self.comm_uni()
-        if r[0] == '':
-            return ''
+        if r is None: return ''
         return units[int(r[0])]
     #########################################
 
     #########################################
     # unit type
-    def get_type(self):
+    def get_type(self) -> str:
         r = self.comm_ayt()
-        if r[0] == '': return ''
+        if r is None: return ''
         return r[0]
     #########################################
 
@@ -105,7 +107,7 @@ class TPG36X(SerMeasure):
     # model no
     def get_mod_no(self):
         r = self.comm_ayt()
-        if r[0] == '': return ''
+        if r is None: return ''
         return r[1]
     #########################################
 
@@ -113,37 +115,66 @@ class TPG36X(SerMeasure):
     # serial no
     def get_ser_no(self):
         r = self.comm_ayt()
-        if r[0] == '': return ''
+        if r is None: return ''
         return r[2]
     #########################################
 
     
 ########################################################################################################################        
-    def send_command(self, command=''):
+    def send_command(self, command, val: List[str] = []):
         if command == '': return False
-        self.ser.write( bytes(command + '\r', 'utf8') ) # works better with older Python3 versions (<3.5)
-        #print("The sent command is: ",command)
+        s = command
+        if len(val) > 0: s += (',' + ','.join(val))
+        try: self.ser.write( bytes(s + '\r', 'utf8') ) # works better with older Python3 versions (<3.5)
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in send_command: {str(e)}")
+            self.ok = False
+            return False
+        if self.verbose: print("The sent command is: ",s)
         #self.ser.readline() # read out echoed command
-        answer = self.ser.readline().rstrip() # return response from the unit
-        #print("The received command is: ",answer)
-        if answer == b'': return False
+        try: answer = self.ser.readline().rstrip() # return response from the unit
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in send_command: {str(e)}")
+            self.ok = False
+            return False
+        if self.verbose: print("The received command is: ",answer)
+        if answer == b'': 
+            self.ok = False
+            print(f"Error in send_command: Nothing is received")
+            return False
+        self.ok = True
         if answer[0] == self.NAK: return False
         else: return True
 
     def send_query(self):
-        self.ser.write(self.ENQ)
-        return self.ser.readline().decode('utf8').rstrip() # return as a string
+        try: 
+            self.ser.write(self.ENQ)
+            a = self.ser.readline().decode('utf8').rstrip() # return as a string
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in send_query: {str(e)}")
+            self.ok = False
+            return None
+        self.ok = True
+        return a
 
-    def send_command_with_query(self, command=''):
+    def send_command_with_query(self, command):
+        try: self.open()
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in send_command_with_query: {str(e)}")
+            self.ok = False
+            return None
         if self.send_command(command):
             return self.send_query()
-        else: return ''
+        else: return None
 
     def comm_ayt(self):
         return self.send_command_with_query('AYT').split(',')
 
     def comm_pr1(self):
         return self.send_command_with_query('PR1').split(',')
+    
+    def comm_pr2(self):
+        return self.send_command_with_query('PR2').split(',')
 
     def comm_uni(self):
         return self.send_command_with_query('UNI').split(',')    

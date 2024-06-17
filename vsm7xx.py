@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 
 from sermeasure import UnitType, SerMeasure
-from serial import Serial
+from serial import Serial, SerialException, SerialTimeoutException
 from serial.tools.list_ports import comports
 
 ###################################################
-# class for reading the pressure from TPG36X
+# class for reading the pressure from VSM7XX
 #
 class VSM7XX(SerMeasure):
 
@@ -14,28 +14,37 @@ class VSM7XX(SerMeasure):
         self.port = port
         self.n_meas, self.n_state, self.n_status = 1, 0, 0
         self.type: list[UnitType] = self.n_meas * [UnitType.Pres]
+        self.ok = False
 
         self.verbose = False
 
         self.address = _address
-        self.open()
+        #self.open()
 
     def open(self):
-        for port in comports():
+        try: 
             self.ser = Serial(self.port, timeout=1, write_timeout=1) # default is okay
-            #self.ser.write(b'\n')
-            self.ser.reset_input_buffer()
-            if self.ser and self.is_open():
-                print('vsm opened')
-                break
-        else:
-            self.ser = None
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in open: {str(e)}")
+            self.ok = False
+        else: self.ok = True
         
     def close(self):
-        self.ser.close()
+        if self.ser is None: return
+        try: self.ser.close()
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in close: {str(e)}")
+        self.ser = None
+        self.ok = False
 
+    def is_open(self):
+        return self.ok        
+    
+    def is_this(self):
+        self.get_prod_name()
+        return self.ok
+    
     def GetMeasure(self, i: int):
-        if not self.ser: return 0
         r = self.get_pr()
         if   r == '' or r == None or r == 'UR': return 0
         if   r == 'OR': return 1e3
@@ -47,13 +56,7 @@ class VSM7XX(SerMeasure):
     def GetStateName(self, i: int):  pass
     def GetState(self, i: int):      pass
     def GetStatusName(self, i: int): pass
-    def GetStatus(self, i: int):     pass
-
-    def is_open(self):
-        if self.ser == None:
-            return False
-        else:
-            return True        
+    def GetStatus(self, i: int):     pass   
     
     #########################################
     # pressure of gauge in mbar
@@ -111,52 +114,78 @@ class VSM7XX(SerMeasure):
     def get_serial_no_head(self):
         return self.read_command('SH')
     #########################################    
-
-    #########################################
-    # serial no
-    def get_ser_no(self):
-        r = self.comm_ayt()
-        if r[0] == '': return ''
-        return r[2]
-    #########################################
-
     
 ########################################################################################################################        
     def read_command(self, command: str):
+        try: self.open()
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in read_command: {str(e)}")
+            self.ok = False
+            return None
         if command == '': return None
         # ADR (0XX) + AC + CMD (XX) + Length (00) + CheckSum + CR
         seq = ('%03d' % self.address) + '0' + command + '00'
         seq = seq + chr(sum([ord(x) for x in seq]) % 64 + 64)
-        self.ser.write( bytes(seq + '\r', 'utf8') ) # works better with older Python3 versions (<3.5)
+        try: self.ser.write( bytes(seq + '\r', 'utf8') ) # works better with older Python3 versions (<3.5)
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in read_command: {str(e)}")
+            self.ok = False
+            return None
         if self.verbose: print("The sent sequence is: ",seq) 
-        answer = self.ser.read_until(b'\r').rstrip() # return response from the unit
+        try: answer = self.ser.read_until(b'\r').rstrip() # return response from the unit
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in read_command: {str(e)}")
+            self.ok = False
+            return None
         if self.verbose: print("The received command is: ",answer)
-        dlen = int(answer[6:8])
-        if answer[3] == 49: 
+        try: dlen = int(answer[6:8])
+        except IndexError as e:
+            print(f"Error in read_command: {str(e)}")
+            self.ok = False
+            return None
+        self.ok = True            
+        if answer[3] == 49:
             if dlen > 0: return answer[8:8+dlen].decode()
             else:        return ''
         else: 
-            print('send_command: error')
+            print('read_command: error in communication')
             return None
 
     def write_command(self, command: str, data: str):
+        try: self.open()
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in write_command: {str(e)}")
+            self.ok = False
+            return None
         if command == '': return None
         # ADR (0XX) + AC + CMD (XX) + Length (00) + CheckSum + CR
         seq = ('%03d' % self.address) + '2' + command + ('%02d' % len(data)) + data
         seq = seq + chr(sum([ord(x) for x in seq]) % 64 + 64)
-        self.ser.write( bytes(seq + '\r', 'utf8') ) # works better with older Python3 versions (<3.5)
+        try: self.ser.write( bytes(seq + '\r', 'utf8') ) # works better with older Python3 versions (<3.5)
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in write_command: {str(e)}")
+            self.ok = False
+            return None
         if self.verbose: print("The sent sequence is: ",seq) 
-        answer = self.ser.read_until(b'\r').rstrip() # return response from the unit
+        try: answer = self.ser.read_until(b'\r').rstrip() # return response from the unit
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in write_command: {str(e)}")
+            self.ok = False
+            return None
         if self.verbose: print("The received command is: ",answer)
-        dlen = int(answer[6:8])
+        try: dlen = int(answer[6:8])
+        except IndexError as e:
+            print(f"Error in write_command: {str(e)}")
+            self.ok = False
+            return None    
+        self.ok = True
         if answer[3] == 51: 
             if dlen > 0: return answer[8:8+dlen].decode()
             else:        return ''
         else: 
-            print('send_command: error')
+            print('write_command: error in communication')
             return None     
 ########################################################################################################################        
-
 
 if __name__=="__main__":
     vsm = VSM7XX(name='vsm', port='/dev/cu.usbserial-AB0PBQ3U')
