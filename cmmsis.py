@@ -1,4 +1,6 @@
-from prompt_toolkit import PromptSession, prompt, Application
+#!/usr/bin/env python
+
+from prompt_toolkit import PromptSession, prompt, Application, print_formatted_text, HTML
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.validation import Validator, ValidationError
 from prompt_toolkit.key_binding import KeyBindings
@@ -165,10 +167,10 @@ class CMMSIS():
         self.port_n = 0
         self.dev_n = 0
         self.sel_n = 0
-        self.dev_list: List[List[str,SerMeasure,bool]] = [] #[['/dev/ttyUSB0', M1, True], ['/dev/ttyUSB1', M2, False]]
+        self.dev_list: List[List[str,SerMeasure,bool]] = [['/dev/ttyUSB0', M1, True], ['/dev/ttyUSB1', M2, False]]
 
-        self.tag_gen: Dict = {} #{'tagg':'t'}
-        self.tag_dev: List[Dict] = [] #[{'taggen': 'tag1'}, {'taggen2': 'tag2'}]
+        self.tag_gen: Dict ={'tagg':'t'}
+        self.tag_dev: List[Dict] = [{'taggen': 'tag1'}, {'taggen2': 'tag2'}]
         self.tag_chan: List[List[Dict]] = []
 
         self.freq = 1.0 # [sec]
@@ -203,7 +205,8 @@ class CMMSIS():
                 'Influx Setting': [self.influx_url, self.influx_token, self.influx_org, self.influx_bucket, ''],
                 'Serial Setting': [f'{self.port_n} Ports', f'{self.dev_n} Available Devices', f'{self.sel_n} Selected Devices', ''],
                 'Tag Setting' : None,
-                'Run': [f'{self.freq} sec', ['Idle', 'Running'][self.status], '', '']}            
+                'Run': [f'{self.freq} sec', ['<ansigreen>Idle</ansigreen>',
+                                             '<ansired>Running</ansired>'][self.status], '', '']}            
 
     def display_menu(self, menu_items, menu_infos = None, flag_idx = True, flag_title = False):
         print("\n", '=' * 30, 'CMMS: Influx Sender', '=' * 30)
@@ -211,12 +214,14 @@ class CMMSIS():
             print(f"  {menu_items[0]:<20}")
             menu_items.pop(0)
         for idx, item in enumerate(menu_items, 1):
-            if item == 'Back' or item == 'Exit': print(f"{0:>3}. {item:<20}", end = '')
-            elif flag_idx: print(f"{idx:>3}. {item:<20}", end = '')
-            else: print(f"  {item:<20}", end = '') 
+            menu_text = ''
+            if item == 'Back' or item == 'Exit': menu_text += f"{0:>3}. {item:<20}"
+            elif flag_idx: menu_text += f"{idx:>3}. {item:<20}"
+            else: menu_text += f"  {item:<20}"
             if menu_infos is not None and menu_infos[idx-1] != '':
-                print(f': {menu_infos[idx-1]:<30}', end = '')
-            print()
+                #print(f': {menu_infos[idx-1]:<30}', end = '')
+                menu_text += f': {menu_infos[idx-1]:<30}'
+            print_formatted_text(HTML(menu_text))
         print(' ' + ('=' * 81))
 
     def handle_option(self, menu_items, choice):
