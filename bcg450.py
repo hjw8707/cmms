@@ -23,7 +23,7 @@ class BCG450(SerMeasure):
         self.type = [UnitType.Pres]
         self.ser = None
         self.ok = False
-        print(f'bcg450 with name: {self.name} and port: {self.port}  opened')
+        print(f'BCG450 with name: {self.name} and port: {self.port}  opened')
 
         self.pres = 0
         self.unit = 0 # 0 ~ 2 (mbar, torr, Pa)
@@ -37,12 +37,12 @@ class BCG450(SerMeasure):
     def open(self):
         try: 
             self.ser = Serial(self.port, timeout=1, write_timeout=1) # default is okay
-            #self.ser.write(b'\n')
-            #self.ser.reset_input_buffer()
         except (SerialException, SerialTimeoutException) as e:
             print(f"Error in open: {str(e)}")
+            self.ser = None
             self.ok = False
         else: self.ok = True
+        return self.ok
         
     def close(self):
         if self.ser is None: return
@@ -100,8 +100,8 @@ class BCG450(SerMeasure):
     #########################################
     # read recent string
     def get_str(self):
+        if not self.open(): return
         try:
-            self.open()
             self.ser.reset_input_buffer()
             r = self.ser.read(18)
         except (SerialException, SerialTimeoutException) as e:
@@ -136,8 +136,8 @@ class BCG450(SerMeasure):
     #########################################
     # write recent string
     def send_str(self, comm, val):
+        if not self.open(): return
         try:
-            self.open()
             self.ser.reset_output_buffer()
             b = bytearray(bytes.fromhex('03'))
             b += bytes.fromhex(comm)
@@ -147,10 +147,9 @@ class BCG450(SerMeasure):
         except (SerialException, SerialTimeoutException) as e:
             print(f"Error in send_str: {str(e)}")
             self.ok = False
-            return
         else:
             self.ok = True
-            return
+        self.close()
 ########################################################################################################################        
 if __name__=="__main__":
     bcg = BCG450()

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from serial import Serial, PARITY_ODD
+from serial import Serial, PARITY_ODD, SerialException, SerialTimeoutException
 from serial.tools.list_ports import comports
 from sermeasure import SerMeasure, UnitType
 
@@ -13,37 +13,39 @@ class LS218(SerMeasure):
         self.port = port
         self.n_meas, self.n_state, self.n_status = 8, 0, 0
         self.type = self.n_meas * [UnitType.Temp]
-        self.open()
+        self.ser = None
+        self.ok = False
+        print(f'LS218 with name: {self.name} and port: {self.port}  opened')
+
+        self.verbose = False
 
     def open(self):
-        for port in comports():
-            if (port.vid, port.pid) == self.vid_pid:
-                self.ser = Serial(self.port, baudrate=9600, 
-                                  bytesize=7, stopbits=1, parity=PARITY_ODD,
-                                  timeout=1, write_timeout=1) # default is okay
-                self.ser.write(b'\n')
-                self.ser.reset_input_buffer()
-                if self.ser and self.is_open():
-                   print('ls218 opened')
-                   break
-        else:
+        try:
+            self.ser = Serial(self.port, baudrate=9600, 
+                                bytesize=7, stopbits=1, parity=PARITY_ODD,
+                                timeout=1, write_timeout=1) # default is okay
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in open: {str(e)}")
             self.ser = None
-    
-    def is_open(self):
-        if self.ser == None:
-            return False
-        else:
-            try:
-                r = self.query('*IDN?')
-            except OSError:
-                return False
-            if len(r) < 1 or r[0] == '':
-                return False
-            return True    
+            self.ok = False
+        else: self.ok = True
+        return self.ok
     
     def close(self):
-        self.ser.close()
+        if self.ser is None: return
+        try: self.ser.close()
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in close: {str(e)}")
+        self.ser = None
+        self.ok = False
 
+    def is_open(self):
+        return self.ok        
+    
+    def is_this(self):
+        self.query('*IDN?')
+        return self.ok  
+    
     def GetMeasure(self, i: int):
         return self.get_temp(self.chs[i])
     
@@ -113,21 +115,40 @@ class LS218(SerMeasure):
     #
     # return [<manufacturer>,<modelnumber>,<serialnumber>,<firmwaredate>]
     def query_idn(self):
-        return self.query('*IDN?').split(',')
+        a = self.query('*IDN?')
+        return a.split(',') if a is not None else None
     ############################################################
 
     #################################
-    def command(self, command=''):
+    def command(self, command):
+        if not self.open(): return False
         if command == '': return False
-        self.ser.write( bytes(command + '\r', 'utf8') ) # works better with older Python3 versions (<3.5)
-        #print("The sent command is: ",command)
-        #self.ser.readline() # read out echoed command
+        try: self.ser.write( bytes(command + '\r', 'utf8') ) # works better with older Python3 versions (<3.5)
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in command: {str(e)}")
+            self.ok = False
+            return False
+        if self.verbose: print("The sent command is: ",command)
+        self.ok = True
         return True
 
-    def query(self, command=''):
+    def query(self, command):
         if self.command(command):
-            return self.ser.readline().decode('utf8').rstrip()
-        else: return ''
+            try: r = self.ser.readline().decode('utf8').rstrip()
+            except (SerialException, SerialTimeoutException) as e:
+                print(f"Error in query: {str(e)}")
+                self.ok = False
+                self.close()
+                return None
+            self.close()
+            if r == '': 
+                print(f"Error in query: No answer")
+                self.ok = False
+                return None
+            return r
+        else:
+            self.close()
+            return None
     #################################
 
 ################################################################################

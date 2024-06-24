@@ -10,6 +10,9 @@ class SerMan:
     def load_ports(self):
         self.ports = sorted(serial.tools.list_ports.comports())
         
+    def n_ports(self):
+        return len(self.ports)
+    
     def get_ports(self):
         return self.ports
     
@@ -47,21 +50,28 @@ class SerMan:
         print('\n'.join(self.string_ports(port_only)))
 
     def find_port_class(self, port):
+        print(f'Find a class for the port {port.name}.')
         if port is None:
             print('Cannot find such a port.')
             return None
         for cl in serm_class_list:
             try:
-                dev = cl('port_check', port)
+                print(f' Trying the class {cl.__name__}')
+                dev = cl('port_check', port.device)
                 if dev.is_this(): return cl
+                #else: print(f' Not the class {cl.__name__}')
             except (serial.SerialException, TypeError, UnicodeDecodeError) as e:
                 print(f"Error: {str(e)}")
                 continue
         return None
+
+    def find_ports_class(self):
+        self.ports_class = [self.find_port_class(x) for x in self.ports]
+        return self.ports_class
 
 if __name__ == "__main__":
     sm = SerMan()
     sm.print_ports(False)
     print(sm.get_port_name(0))
     print(sm.get_port_dev(0))
-    sm.find_port_class(sm.get_port(0))
+    print(sm.find_ports_class())

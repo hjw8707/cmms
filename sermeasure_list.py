@@ -15,6 +15,8 @@ serm_class_list = []
 for name, obj in inspect.getmembers(sys.modules[__name__]):          
     if inspect.isclass(obj) and obj.__base__.__name__ == 'SerMeasure':
         serm_class_list.append(obj)
+serm_name_list = [x.__name__ for x in serm_class_list]
 
 if __name__=="__main__":
     print(serm_class_list)
+    print(serm_name_list)

@@ -7,13 +7,19 @@ class M1(SerMeasure):
         self.m1 = 1
         self.n_meas, self.n_state, self.n_status = 1, 0, 0
         self.type = [UnitType.Pres]
-        self.connected = self.is_open()
+
+        self.ok = False
+        print(f'M1 with name: {self.name} and port: {self.port}  opened')
+
         
     def open(self):
         pass
     
     def is_open(self):
         return True
+    
+    def is_this(self):
+        return self.ok  
     
     def close(self):
         pass
@@ -45,13 +51,18 @@ class M2(SerMeasure):
         self.m2 = 2    
         self.n_meas, self.n_state, self.n_status = 3, 1, 1
         self.type = self.n_meas * [UnitType.Temp]
-        self.connected = self.is_open()
-         
+
+        self.ok = False
+        print(f'M2 with name: {self.name} and port: {self.port}  opened')
+
     def open(self):
         pass
     
     def is_open(self):
         return True
+    
+    def is_this(self):
+        return self.ok  
     
     def close(self):
         pass
@@ -82,13 +93,18 @@ class M3(SerMeasure):
         self.m3 = 3   
         self.n_meas, self.n_state, self.n_status = 2, 1, 1
         self.type = [UnitType.Temp, UnitType.Perc]        
-        self.connected = self.is_open()
-         
+
+        self.ok = False
+        print(f'M3 with name: {self.name} and port: {self.port}  opened')
+
     def open(self):
         pass
     
     def is_open(self):
         return True
+    
+    def is_this(self):
+        return self.ok  
     
     def close(self):
         pass

@@ -15,19 +15,21 @@ class VSM7XX(SerMeasure):
         self.n_meas, self.n_state, self.n_status = 1, 0, 0
         self.type: list[UnitType] = self.n_meas * [UnitType.Pres]
         self.ok = False
+        print(f'VSN7XX with name: {self.name} and port: {self.port}  opened')
 
         self.verbose = False
 
         self.address = _address
-        #self.open()
 
     def open(self):
         try: 
             self.ser = Serial(self.port, timeout=1, write_timeout=1) # default is okay
         except (SerialException, SerialTimeoutException) as e:
             print(f"Error in open: {str(e)}")
+            self.ser = None
             self.ok = False
         else: self.ok = True
+        return self.ok
         
     def close(self):
         if self.ser is None: return
@@ -117,11 +119,7 @@ class VSM7XX(SerMeasure):
     
 ########################################################################################################################        
     def read_command(self, command: str):
-        try: self.open()
-        except (SerialException, SerialTimeoutException) as e:
-            print(f"Error in read_command: {str(e)}")
-            self.ok = False
-            return None
+        if not self.open(): return None
         if command == '': return None
         # ADR (0XX) + AC + CMD (XX) + Length (00) + CheckSum + CR
         seq = ('%03d' % self.address) + '0' + command + '00'
@@ -130,20 +128,24 @@ class VSM7XX(SerMeasure):
         except (SerialException, SerialTimeoutException) as e:
             print(f"Error in read_command: {str(e)}")
             self.ok = False
+            self.close()
             return None
         if self.verbose: print("The sent sequence is: ",seq) 
         try: answer = self.ser.read_until(b'\r').rstrip() # return response from the unit
         except (SerialException, SerialTimeoutException) as e:
             print(f"Error in read_command: {str(e)}")
             self.ok = False
+            self.close()
             return None
         if self.verbose: print("The received command is: ",answer)
         try: dlen = int(answer[6:8])
-        except IndexError as e:
+        except (IndexError, ValueError) as e:
             print(f"Error in read_command: {str(e)}")
             self.ok = False
+            self.close()
             return None
-        self.ok = True            
+        self.ok = True
+        self.close()        
         if answer[3] == 49:
             if dlen > 0: return answer[8:8+dlen].decode()
             else:        return ''
@@ -152,11 +154,7 @@ class VSM7XX(SerMeasure):
             return None
 
     def write_command(self, command: str, data: str):
-        try: self.open()
-        except (SerialException, SerialTimeoutException) as e:
-            print(f"Error in write_command: {str(e)}")
-            self.ok = False
-            return None
+        if not self.open(): return None
         if command == '': return None
         # ADR (0XX) + AC + CMD (XX) + Length (00) + CheckSum + CR
         seq = ('%03d' % self.address) + '2' + command + ('%02d' % len(data)) + data
@@ -165,16 +163,19 @@ class VSM7XX(SerMeasure):
         except (SerialException, SerialTimeoutException) as e:
             print(f"Error in write_command: {str(e)}")
             self.ok = False
+            self.close()
             return None
         if self.verbose: print("The sent sequence is: ",seq) 
         try: answer = self.ser.read_until(b'\r').rstrip() # return response from the unit
         except (SerialException, SerialTimeoutException) as e:
             print(f"Error in write_command: {str(e)}")
             self.ok = False
+            self.close()
             return None
+        self.close()
         if self.verbose: print("The received command is: ",answer)
         try: dlen = int(answer[6:8])
-        except IndexError as e:
+        except (IndexError, ValueError) as e:
             print(f"Error in write_command: {str(e)}")
             self.ok = False
             return None    

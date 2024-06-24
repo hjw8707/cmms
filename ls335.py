@@ -11,15 +11,25 @@ class LS335(SerMeasure):
         self.port = port
         self.n_meas, self.n_state, self.n_status = 2, 0, 0
         self.type = self.n_meas * [UnitType.Temp]
+        self.ser = None
+        self.ok = False
+        print(f'LS335 with name: {self.name} and port: {self.port}  opened')
         self.open()
+
+        self.verbose = False
 
     def open(self):
         try:
             self.tc = Model335(com_port=self.port, baud_rate=57600)
-            print('ls335 opened')
         except generic_instrument.InstrumentException:
             self.tc = None
+            self.ok = False
+        else: self.ok = True
+        return self.ok
     
+    def close(self):
+        if self.tc:  del self.tc
+
     def is_open(self):
         if self.tc == None:
             return False
@@ -32,9 +42,11 @@ class LS335(SerMeasure):
             except generic_instrument.InstrumentException:
                 return True
             return True
-    
-    def close(self):
-        if self.tc:  del self.tc
+
+    def is_this(self):
+        if not self.open(): return False
+        self.tc.query('*IDN?')
+        return self.ok  
 
     def GetMeasure(self, i: int):
         return self.get_temp(self.chs[i])

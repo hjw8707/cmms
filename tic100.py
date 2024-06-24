@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from sermeasure import SerMeasure, UnitType
-from serial import Serial
+from serial import Serial, SerialException, SerialTimeoutException
 from serial.tools.list_ports import comports
 
 ###################################################
@@ -9,21 +9,18 @@ from serial.tools.list_ports import comports
 #
 # TIC100 should be connected via RS232 (RS232-USB converter)
 class TIC100(SerMeasure):
-    vid_pid = (0x0403, 0x6001) # need to be revised
-    ETX = b'\x03'
-    CR  = b'\x0D'
-    LF  = b'\x0A'
-    ENQ = b'\x05'
-    ACK = b'\x06'
-    NAK = b'\x15'
 
     def __init__(self, name: str, port: str):
         self.name: str   = name
         self.port: str   = port
         self.n_meas, self.n_state, self.n_status = 4, 1, 2
         self.type: list[UnitType] = [UnitType.Pres, UnitType.Pres, UnitType.Pres, UnitType.Perc]
+        self.type: list[UnitType] = self.n_meas * [UnitType.Pres]
+        self.ok = False
+        print(f'TIC100 with name: {self.name} and port: {self.port}  opened')
 
-        self.open()
+        self.verbose = False
+        #self.open()
         self.model:     str = ''
         self.sw_ver:    str = ''
         self.ser_num:   str = ''
@@ -34,28 +31,29 @@ class TIC100(SerMeasure):
         self.relay_st = (0, 0, 0)
 
     def open(self):
-        for port in comports():
+        try: 
             self.ser = Serial(self.port, timeout=1, write_timeout=1) # default is okay
-            self.ser.write(b'\n')
-            self.ser.reset_input_buffer()
-            if self.ser and self.is_open():
-                print('tic opened')
-                break
-        else:
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in open: {str(e)}")
             self.ser = None
+            self.ok = False
+        else: self.ok = True
+        return self.ok
         
     def close(self):
-        self.ser.close()
+        if self.ser is None: return
+        try: self.ser.close()
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in close: {str(e)}")
+        self.ser = None
+        self.ok = False
     
     def is_open(self):
-        if self.ser == None:
-            return False
-        else:
-            try:
-                r = self.status_querys()
-            except OSError:
-                return False
-            return r 
+        return self.ok   
+    
+    def is_this(self):
+        self.status_querys()
+        return self.ok
     
     def GetMeasure(self, i: int):
         if i >= self.n_meas: return 0
@@ -163,52 +161,97 @@ class TIC100(SerMeasure):
     
     #############################################################################
     def send_gcommand(self, oid: int, m: int):
-        self.ser.write( bytes('!C' + str(oid) + ' ' + str(m) + '\r', 'utf8') )
-        #print("The sent command is: ",command)
-        answer = self.ser.read_until(b'\r').decode().rstrip() # return response from the unit
+        if not self.open(): return False
+        try:
+            self.ser.write( bytes('!C' + str(oid) + ' ' + str(m) + '\r', 'utf8') )
+            answer = self.ser.read_until(b'\r').decode().rstrip() # return response from the unit
+            if self.verbose: print("The receieved command is: ",answer)
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in send_gcommand: {str(e)}")
+            self.ok = False
+            self.close()
+            return False
+        self.close()        
         if answer.index('*C') != 0:
+            self.ok = False
             return False
         oid_a, r = list(map(int, answer[answer.index('*C')+2:].split()))
         if oid_a != oid or r != 0:
+            self.ok = False
             return False
+        self.ok = True
         return True
 
     def send_scommand(self, oid: int, data: str):
         if data == '': return False
-        self.ser.write( bytes('!S' + str(oid) + ' ' + data + '\r', 'utf8') )
-        #print("The sent command is: ",command)
-        answer = self.ser.read_until(b'\r').decode().rstrip() # return response from the unit
+        if not self.open(): return False
+        try:
+            self.ser.write( bytes('!S' + str(oid) + ' ' + data + '\r', 'utf8') )
+            answer = self.ser.read_until(b'\r').decode().rstrip() # return response from the unit
+            if self.verbose: print("The receieved command is: ",answer)
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in send_scommand: {str(e)}")
+            self.ok = False
+            self.close()
+            return False
+        self.close()
         if answer.index('*S') != 0:
+            self.ok = False
             return False
         oid_a, r = list(map(int, answer[answer.index('*S')+2:].split()))
         if oid_a != oid or r != 0:
+            self.ok = False
             return False
+        self.ok = True
         return True
 
     def send_querys(self, oid: int):
-        self.ser.write( bytes('?S' + str(oid) + '\r', 'utf8') )
-        #print("The sent command is: ",command)
-        answer = self.ser.read_until(b'\r').decode().rstrip() # return response from the unit
-        if answer.index('=S') != 0:
+        if not self.open(): return None
+        try:
+            self.ser.write( bytes('?S' + str(oid) + '\r', 'utf8') )
+            #print("The sent command is: ",command)
+            answer = self.ser.read_until(b'\r').decode().rstrip() # return response from the unit
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in send_querys: {str(e)}")
+            self.ok = False
+            self.close()
             return None
-        answers= answer[answer.index('=S')+2:].split()
+        self.close()
+        if answer == '' or answer.index('=S') != 0:
+            print(f"Error in send_querys: No available answer")
+            self.ok = False
+            return None
+        answers = answer[answer.index('=S')+2:].split()
         oid_a = int(answers[0])
         data = answers[1]
         if oid_a != oid or data == '':
+            self.ok = False
             return None
+        self.ok = True
         return data
 
     def send_queryv(self, oid: int):
-        self.ser.write( bytes('?V' + str(oid) + '\r', 'utf8') )
-        #print("The sent command is: ",command)
-        answer = self.ser.read_until(b'\r').decode().rstrip()
+        if not self.open(): return None
+        try:
+            self.ser.write( bytes('?V' + str(oid) + '\r', 'utf8') )
+            #print("The sent command is: ",command)
+            answer = self.ser.read_until(b'\r').decode().rstrip()
         # return response from the unit
+        except (SerialException, SerialTimeoutException) as e:
+            print(f"Error in send_queryv: {str(e)}")
+            self.ok = False
+            self.close()
+            return None
+        self.close()
         if answer.index('=V') != 0:
+            self.ok = False
             return None
         answers= answer[answer.index('=V')+2:].split()
         oid_a = int(answers[0])
         data = answers[1]
         if oid_a != oid or data == '':
+            self.ok = False
             return None
+        self.ok = True
         return data
     #############################################################################

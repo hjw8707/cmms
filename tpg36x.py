@@ -34,6 +34,7 @@ class TPG36X(SerMeasure):
             print(f"Error in open: {str(e)}")
             self.ok = False
         else: self.ok = True
+        return self.ok
         
     def close(self):
         if self.ser is None: return
@@ -158,27 +159,31 @@ class TPG36X(SerMeasure):
         return a
 
     def send_command_with_query(self, command):
-        try: self.open()
-        except (SerialException, SerialTimeoutException) as e:
-            print(f"Error in send_command_with_query: {str(e)}")
-            self.ok = False
-            return None
+        if not self.open(): return None
         if self.send_command(command):
-            return self.send_query()
-        else: return None
+            r = self.send_query()
+            self.close()
+            return r
+        else:
+            self.close() 
+            return None
 
     def comm_ayt(self):
-        return self.send_command_with_query('AYT').split(',')
+        a = self.send_command_with_query('AYT')
+        return a.split(',') if a is not None else None
 
     def comm_pr1(self):
-        return self.send_command_with_query('PR1').split(',')
-    
+        a = self.send_command_with_query('PR1')
+        return a.split(',') if a is not None else None
+     
     def comm_pr2(self):
-        return self.send_command_with_query('PR2').split(',')
-
+        a = self.send_command_with_query('PR2')
+        return a.split(',') if a is not None else None
+    
     def comm_uni(self):
-        return self.send_command_with_query('UNI').split(',')    
-########################################################################################################################        
+        a = self.send_command_with_query('UNI')
+        return a.split(',') if a is not None else None
+  ########################################################################################################################        
 
 
 if __name__=="__main__":
