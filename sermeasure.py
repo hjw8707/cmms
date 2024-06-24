@@ -9,13 +9,14 @@ class UnitType(Enum):
 
 # an abstract base class to declare methods for getting measurements via a serial port
 class SerMeasure(metaclass=ABCMeta):
+    n_meas, n_state, n_status = 1, 1, 1
 
     # a constructor that initializes a name, port and n_meas attribute
     @abstractmethod
     def __init__(self, name: str, port: str):
         self.name = name
         self.port = port
-        self.n_meas, self.n_state, self.n_status = 1, 1, 1
+        #self.n_meas, self.n_state, self.n_status = 1, 1, 1
         self.type: list[UnitType] = [UnitType.Pres]
         pass
     

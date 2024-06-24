@@ -5,11 +5,11 @@ from sermeasure import SerMeasure, UnitType
 
 class LS335(SerMeasure):
     chs = ['A', 'B']
+    n_meas, n_state, n_status = 2, 0, 0
     
     def __init__(self, name, port):
         self.name = name
         self.port = port
-        self.n_meas, self.n_state, self.n_status = 2, 0, 0
         self.type = self.n_meas * [UnitType.Temp]
         self.ser = None
         self.ok = False

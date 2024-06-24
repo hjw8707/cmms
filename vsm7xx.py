@@ -8,11 +8,10 @@ from serial.tools.list_ports import comports
 # class for reading the pressure from VSM7XX
 #
 class VSM7XX(SerMeasure):
-
+    n_meas, n_state, n_status = 1, 0, 0
     def __init__(self, name, port, _address = 1):
         self.name = name
         self.port = port
-        self.n_meas, self.n_state, self.n_status = 1, 0, 0
         self.type: list[UnitType] = self.n_meas * [UnitType.Pres]
         self.ok = False
         print(f'VSN7XX with name: {self.name} and port: {self.port}  opened')

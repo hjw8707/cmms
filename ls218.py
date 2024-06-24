@@ -7,11 +7,11 @@ from sermeasure import SerMeasure, UnitType
 class LS218(SerMeasure):
     vid_pid = (0x067B, 0x2303)
     chs = [str(x) for x in [*range(1,9)]]
-
+    n_meas, n_state, n_status = 8, 0, 0
+    
     def __init__(self, name, port):
         self.name = name
         self.port = port
-        self.n_meas, self.n_state, self.n_status = 8, 0, 0
         self.type = self.n_meas * [UnitType.Temp]
         self.ser = None
         self.ok = False

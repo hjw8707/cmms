@@ -1,11 +1,11 @@
 from sermeasure import UnitType, SerMeasure
 
 class M1(SerMeasure):
+    n_meas, n_state, n_status = 1, 0, 0
     def __init__(self, name: str, port: str):
         self.name = name
         self.port = port
         self.m1 = 1
-        self.n_meas, self.n_state, self.n_status = 1, 0, 0
         self.type = [UnitType.Pres]
 
         self.ok = False
@@ -45,11 +45,11 @@ class M1(SerMeasure):
 
 
 class M2(SerMeasure):
+    n_meas, n_state, n_status = 3, 1, 1
     def __init__(self, name: str, port: str):
         self.name = name
         self.port = port
         self.m2 = 2    
-        self.n_meas, self.n_state, self.n_status = 3, 1, 1
         self.type = self.n_meas * [UnitType.Temp]
 
         self.ok = False
@@ -87,11 +87,11 @@ class M2(SerMeasure):
         return True
 
 class M3(SerMeasure):
+    n_meas, n_state, n_status = 2, 1, 1
     def __init__(self, name: str, port: str):
         self.name = name
         self.port = port
         self.m3 = 3   
-        self.n_meas, self.n_state, self.n_status = 2, 1, 1
         self.type = [UnitType.Temp, UnitType.Perc]        
 
         self.ok = False

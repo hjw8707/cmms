@@ -16,11 +16,10 @@ class TPG36X(SerMeasure):
     ENQ = b'\x05'
     ACK = b'\x06'
     NAK = b'\x15'
-
+    n_meas, n_state, n_status = 2, 0, 0
     def __init__(self, name, port):
         self.name = name
         self.port = port
-        self.n_meas, self.n_state, self.n_status = 2, 0, 0
         self.type: list[UnitType] = self.n_meas * [UnitType.Pres]
 
         self.ok = False

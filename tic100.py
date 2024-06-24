@@ -9,11 +9,11 @@ from serial.tools.list_ports import comports
 #
 # TIC100 should be connected via RS232 (RS232-USB converter)
 class TIC100(SerMeasure):
+    n_meas, n_state, n_status = 4, 1, 2
 
     def __init__(self, name: str, port: str):
         self.name: str   = name
         self.port: str   = port
-        self.n_meas, self.n_state, self.n_status = 4, 1, 2
         self.type: list[UnitType] = [UnitType.Pres, UnitType.Pres, UnitType.Pres, UnitType.Perc]
         self.type: list[UnitType] = self.n_meas * [UnitType.Pres]
         self.ok = False
