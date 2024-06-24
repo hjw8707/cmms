@@ -8,7 +8,11 @@ class SerMan:
         self.load_ports()
     
     def load_ports(self):
-        self.ports = sorted(serial.tools.list_ports.comports())
+        self.ports = []
+        for port in sorted(serial.tools.list_ports.comports()):
+            if port.device.find('ttyS') < 0:
+                self.ports.append(port)
+                
         
     def n_ports(self):
         return len(self.ports)
