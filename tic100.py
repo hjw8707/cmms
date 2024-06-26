@@ -46,7 +46,6 @@ class TIC100(SerMeasure):
         except (SerialException, SerialTimeoutException) as e:
             print(f"Error in close: {str(e)}")
         self.ser = None
-        self.ok = False
     
     def is_open(self):
         return self.ok   
@@ -217,7 +216,7 @@ class TIC100(SerMeasure):
             self.close()
             return None
         self.close()
-        if answer == '' or answer.index('=S') != 0:
+        if len(answer) < 2 or answer.index('=S') != 0:
             print(f"Error in send_querys: No available answer")
             self.ok = False
             return None
@@ -255,3 +254,9 @@ class TIC100(SerMeasure):
         self.ok = True
         return data
     #############################################################################
+
+if __name__=="__main__":
+    tic = TIC100('test', '/dev/ttyUSB2')
+    print('Open? : ' + str(tic.is_this()))
+
+    

@@ -36,7 +36,6 @@ class VSM7XX(SerMeasure):
         except (SerialException, SerialTimeoutException) as e:
             print(f"Error in close: {str(e)}")
         self.ser = None
-        self.ok = False
 
     def is_open(self):
         return self.ok        
@@ -188,9 +187,11 @@ class VSM7XX(SerMeasure):
 ########################################################################################################################        
 
 if __name__=="__main__":
-    vsm = VSM7XX(name='vsm', port='/dev/cu.usbserial-AB0PBQ3U')
+    vsm = VSM7XX(name='vsm', port='/dev/ttyUSB1')
     vsm.verbose = True
-    print(vsm.get_type())
+    print(vsm.get_prod_name())
+    print(vsm.ok)
     #print(vsm.GetMeasure(0))
+
     #print(vsm.GetUnit(0))
 

@@ -28,7 +28,10 @@ class LS218(SerMeasure):
             print(f"Error in open: {str(e)}")
             self.ser = None
             self.ok = False
-        else: self.ok = True
+        else:
+            self.ok = True
+            self.ser.write(b'\n')
+            self.ser.reset_input_buffer()
         return self.ok
     
     def close(self):
@@ -37,7 +40,6 @@ class LS218(SerMeasure):
         except (SerialException, SerialTimeoutException) as e:
             print(f"Error in close: {str(e)}")
         self.ser = None
-        self.ok = False
 
     def is_open(self):
         return self.ok        
@@ -123,7 +125,7 @@ class LS218(SerMeasure):
     def command(self, command):
         if not self.open(): return False
         if command == '': return False
-        try: self.ser.write( bytes(command + '\r', 'utf8') ) # works better with older Python3 versions (<3.5)
+        try: self.ser.write( bytes(command + '\n', 'utf8') ) # works better with older Python3 versions (<3.5)
         except (SerialException, SerialTimeoutException) as e:
             print(f"Error in command: {str(e)}")
             self.ok = False
@@ -140,8 +142,9 @@ class LS218(SerMeasure):
                 self.ok = False
                 self.close()
                 return None
+            if self.verbose: print("The recieved string is: ", r)
             self.close()
-            if r == '': 
+            if len(r) < 2: 
                 print(f"Error in query: No answer")
                 self.ok = False
                 return None
@@ -154,11 +157,9 @@ class LS218(SerMeasure):
 ################################################################################
 
 if __name__=="__main__":
-    ls = LS218()
-    
-    print(ls.query('*IDN?'))
-    print('Model : ' + ls.get_mod_no())
-    print('Serial: ' + ls.get_ser_no())
-    print('TempA: ' + str(ls.get_temp('A')) + ' ' + 'K')
-
+    ls = LS218('test','/dev/ttyUSB0')
+    ls.verbose = True
+    ls.query_idn()
+    ls.get_temp(0)
+    print(ls.ok)
     

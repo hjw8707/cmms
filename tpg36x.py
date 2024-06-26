@@ -23,6 +23,7 @@ class TPG36X(SerMeasure):
         self.type: list[UnitType] = self.n_meas * [UnitType.Pres]
 
         self.ok = False
+        print(f'TPG36X with name: {self.name} and port: {self.port}  opened')
         self.verbose = False
         #self.open()
 
@@ -41,7 +42,6 @@ class TPG36X(SerMeasure):
         except (SerialException, SerialTimeoutException) as e:
             print(f"Error in close: {str(e)}")
         self.ser = None
-        self.ok = False
 
     def is_open(self):
         return self.ok
@@ -186,8 +186,9 @@ class TPG36X(SerMeasure):
 
 
 if __name__=="__main__":
-    tpg = TPG36X(ser_num='AD0K7AX9')
+    tpg = TPG36X('test', '/dev/ttyUSB3')
     print('Open? : ' + str(tpg.is_open()))
+    print("Is This?: " + str(tpg.is_this()))
     print('Type  : ' + tpg.get_type())
     print('Model : ' + tpg.get_mod_no())
     print('Serial: ' + tpg.get_ser_no())

@@ -134,10 +134,11 @@ class InfluxSender():
             [th.start() for th in ths]
             [th.join() for th in ths]
             pts = self.make_points(ths)
-            try: write_api.write(self.bucket, self.org, pts)
-            except:
-                print('Error in InfluxSender')
-                return
+            write_api.write(self.bucket, self.org, pts)
+            #try: write_api.write(self.bucket, self.org, pts)
+            #except:
+            #    print('Error in InfluxSender')
+            #    return
             time.sleep(self.freq)
 
     def make_points(self, ths: List[ThreadSermeasure]) -> List[Point]:
@@ -159,18 +160,18 @@ class CMMSIS():
     def __init__(self):
         ########################################################
         # Parameter Variables
-        self.influx_url = 'http://localhost:8086'
+        self.influx_url = 'http://grafmon.local:8086'
         self.influx_token = 'influx_token.txt'
         self.influx_org = 'CENS'
-        self.influx_bucket = 'test'
+        self.influx_bucket = 'cmms'
 
         self.port_n = 0
         self.dev_n = 0
         self.sel_n = 0
-        self.dev_list: List[List[str,SerMeasure,bool]] = [['/dev/ttyUSB0', M1, True], ['/dev/ttyUSB1', M2, False]]
+        self.dev_list: List[List[str,SerMeasure,bool]] = [] #[['/dev/ttyUSB0', M1, True], ['/dev/ttyUSB1', M2, False]]
 
-        self.tag_gen: Dict ={'tagg':'t'}
-        self.tag_dev: List[Dict] = [{'taggen': 'tag1'}, {'taggen2': 'tag2'}]
+        self.tag_gen: Dict = {} #{'tagg':'t'}
+        self.tag_dev: List[Dict] = [] # [{'taggen': 'tag1'}, {'taggen2': 'tag2'}]
         self.tag_chan: List[List[Dict]] = []
 
         self.freq = 1.0 # [sec]
@@ -268,8 +269,8 @@ class CMMSIS():
             # tag-related arrays
             while len(self.tag_dev) < len(self.dev_list): self.tag_dev.append({})
             while len(self.tag_chan) < len(self.dev_list): self.tag_chan.append([])
-            for dev in self.dev_list:
-                tags = self.tag_chan[int(sel)-1]
+            for i, dev in enumerate(self.dev_list):
+                tags = self.tag_chan[i-1]
                 n = dev[1].n_meas + dev[1].n_status + dev[1].n_state
                 while len(tags) < n: tags.append({})
             #######################################################################
